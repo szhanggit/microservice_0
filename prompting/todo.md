@@ -420,7 +420,7 @@ Always generate
 
 I would **not** ask Claude to generate the entire project in one prompt. Instead, have it complete one milestone at a time. A good breakdown is:
 
-## Phase 1 – Solution Skeleton
+## Phase 1 – Solution Skeleton ✅ DONE
 
 * Create the root folder structure.
 * Create the solution (`.sln`).
