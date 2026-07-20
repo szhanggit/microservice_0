@@ -17,4 +17,13 @@
     <NoWarn>$(NoWarn);CS1591;CA1716;CA1848</NoWarn>
   </PropertyGroup>
 
+  <!-- IsTestProject is set inside each test .csproj's own PropertyGroup, which is evaluated
+       after this file, so it can't be used as a condition here. Key off the naming convention instead. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.Contains('.Tests.'))">
+    <!-- CA1707: xUnit convention is Method_Scenario_Expected with underscores. -->
+    <!-- CA2201: tests deliberately throw generic Exception to simulate arbitrary error paths. -->
+    <!-- CA1001: disposable fields are cleaned up via xUnit's IAsyncLifetime, which the analyzer doesn't recognize. -->
+    <NoWarn>$(NoWarn);CA1707;CA2201;CA1001</NoWarn>
+  </PropertyGroup>
+
 </Project>

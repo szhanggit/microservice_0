@@ -444,7 +444,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 3 – UserRepositoryService
+## Phase 3 – UserRepositoryService ✅ DONE
 
 * Create the EF Core `DbContext`.
 * Define the `UserInfo` entity.
