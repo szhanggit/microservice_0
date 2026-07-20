@@ -12,7 +12,9 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CA1716: "Shared.*" is a mandated project naming scheme; VB's reserved "Shared" keyword doesn't apply here. -->
+    <!-- CA1848: LoggerMessage delegates are for hot paths; not warranted for the exception/startup logging in this solution. -->
+    <NoWarn>$(NoWarn);CS1591;CA1716;CA1848</NoWarn>
   </PropertyGroup>
 
 </Project>
