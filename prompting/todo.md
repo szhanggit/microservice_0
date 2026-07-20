@@ -458,7 +458,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 4 – UserManagementService
+## Phase 4 – UserManagementService ✅ DONE
 
 * Implement business validation (duplicate email, required fields, etc.).
 * Consume `UserRepositoryService` via gRPC.
