@@ -469,7 +469,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 5 – UserManagementGateway
+## Phase 5 – UserManagementGateway ✅ DONE
 
 * Build REST endpoints.
 * Generate Swagger documentation.
