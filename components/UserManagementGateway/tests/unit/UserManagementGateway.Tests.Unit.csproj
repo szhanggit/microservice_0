@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\UserManagementGateway.csproj" />
+    <ProjectReference Include="..\..\src\private\UserManagementGateway\UserManagementGateway.csproj" />
   </ItemGroup>
 
 </Project>

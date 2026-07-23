@@ -1,0 +1,32 @@
+include:
+  - ../UserRepositoryService/docker-compose.yaml
+  - ../UserManagementService/docker-compose.yaml
+
+services:
+  usermanagementgateway:
+    build:
+      context: ../../
+      dockerfile: components/UserManagementGateway/src/private/UserManagementGateway/Dockerfile
+    container_name: microservice0-gateway
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      GrpcClients__UserManagementService: "http://usermanagementservice:8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      usermanagementservice:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservice0-network
+
+networks:
+  microservice0-network:
+    name: microservice0-network
+    driver: bridge

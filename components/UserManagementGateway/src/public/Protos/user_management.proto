@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+import "common.proto";
+
+option csharp_namespace = "Shared.Protos.UserManagement";
+
+package shared.usermanagement;
+
+// Contract between UserManagementGateway (client) and UserManagementService (server).
+service UserManagementGrpcService {
+  rpc CreateUser (CreateUserRequest) returns (UserReply);
+  rpc GetUserById (GetUserByIdRequest) returns (UserReply);
+  rpc UpdateUser (UpdateUserRequest) returns (UserReply);
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserReply);
+  rpc SearchUsers (SearchUsersRequest) returns (SearchUsersReply);
+}
+
+message CreateUserRequest {
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
+}
+
+message GetUserByIdRequest {
+  string user_id = 1;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message DeleteUserReply {
+  bool success = 1;
+}
+
+message SearchUsersRequest {
+  string name = 1;
+}
+
+message UserReply {
+  shared.common.UserProto user = 1;
+}
+
+message SearchUsersReply {
+  repeated shared.common.UserProto users = 1;
+}

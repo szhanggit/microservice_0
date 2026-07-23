@@ -1,0 +1,17 @@
+services:
+  usermanagementgateway:
+    image: ${DOCKER_REGISTRY-}usermanagementgateway
+    build:
+      # This compose file's own directory (src/) is the build context Visual Studio uses,
+      # so reach the repo root (three levels up) where libs/ and Directory.*.props live.
+      context: ../../..
+      dockerfile: components/UserManagementGateway/src/private/UserManagementGateway/Dockerfile
+    environment:
+      GrpcClients__UserManagementService: "http://usermanagementservice:8080"
+    networks:
+      - microservice0-network
+
+networks:
+  microservice0-network:
+    name: microservice0-network
+    driver: bridge

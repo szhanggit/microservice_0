@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- ASP.NET Core / API -->
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <!-- gRPC -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.80.0" />

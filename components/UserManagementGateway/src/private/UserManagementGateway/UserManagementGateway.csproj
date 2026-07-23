@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+    <UserSecretsId>18201e85-6acf-4b49-bc30-12063f99f37d</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\libs\Shared.Contracts\Shared.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\Shared.Common\Shared.Common.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\Shared.Logging\Shared.Logging.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\Shared.Protos\Shared.Protos.csproj" />
+  </ItemGroup>
+
+</Project>

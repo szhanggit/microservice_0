@@ -1,2 +1,4 @@
 claude --resume bf91594d-440d-45df-82b6-65c9fc694f9d --dangerously-skip-permissions
 550e8400-e29b-41d4-a716-446655440000
+
+http://localhost:61696/swagger/index.html

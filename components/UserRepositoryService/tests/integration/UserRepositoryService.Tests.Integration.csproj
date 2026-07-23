@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\UserRepositoryService.csproj" />
+    <ProjectReference Include="..\..\src\private\UserRepositoryService\UserRepositoryService.csproj" />
   </ItemGroup>
 
 </Project>
