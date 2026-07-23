@@ -8,6 +8,10 @@ using UserManagementGateway.Services;
 using UserManagementGateway.Validation;
 using ManagementProto = Shared.Protos.UserManagement;
 
+// Enables calling gRPC servers over unencrypted HTTP/2 (h2c), which is how services
+// talk to each other inside the docker-compose/Kubernetes network - TLS terminates at the edge.
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddSharedSerilogLogging("UserManagementGateway");
@@ -32,6 +36,7 @@ builder.Services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValid
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddSharedExceptionHandling();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -45,10 +50,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Containers bind plain HTTP only (ASPNETCORE_URLS=http://+:8080) - TLS terminates at the
+// ingress/reverse proxy, not in-process. Only redirect when an HTTPS URL is actually bound,
+// which is the case for local `dotnet run` via launchSettings.json.
+var boundUrls = builder.Configuration["ASPNETCORE_URLS"] ?? string.Empty;
+if (boundUrls.Contains("https", StringComparison.OrdinalIgnoreCase))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapSharedHealthChecks();
 
 app.Run();

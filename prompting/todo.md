@@ -481,7 +481,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 6 – Docker
+## Phase 6 – Docker ✅ DONE
 
 * Create optimized multi-stage Dockerfiles for each service.
 * Write a root `docker-compose.yml`.

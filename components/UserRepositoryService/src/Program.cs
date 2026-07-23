@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Shared.Common.Extensions;
 using Shared.Logging.Extensions;
+using UserRepositoryService.HealthChecks;
 using UserRepositoryService.Interceptors;
 using UserRepositoryService.Persistence;
 using UserRepositoryService.Repositories;
@@ -8,6 +10,7 @@ using UserRepositoryService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.ConfigureContainerGrpcAndHealthEndpoints();
 builder.AddSharedSerilogLogging("UserRepositoryService");
 
 var connectionString = builder.Configuration.GetConnectionString("MySql")
@@ -21,11 +24,15 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddGrpc(options => options.Interceptors.Add<ExceptionHandlingInterceptor>());
 builder.Services.AddGrpcReflection();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: DatabaseHealthCheck.ReadyTags);
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
 app.MapGrpcService<UserGrpcService>();
+app.MapSharedHealthChecks();
 
 if (app.Environment.IsDevelopment())
 {

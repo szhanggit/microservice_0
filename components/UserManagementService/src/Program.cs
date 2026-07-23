@@ -1,4 +1,5 @@
 using Serilog;
+using Shared.Common.Extensions;
 using Shared.Common.Validators;
 using Shared.Logging.Extensions;
 using Shared.Protos.UserManagement;
@@ -7,8 +8,13 @@ using UserManagementService.Services;
 using UserManagementService.Validation;
 using RepoProto = Shared.Protos.UserRepository;
 
+// Enables calling gRPC servers over unencrypted HTTP/2 (h2c), which is how services
+// talk to each other inside the docker-compose/Kubernetes network - TLS terminates at the edge.
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
+builder.ConfigureContainerGrpcAndHealthEndpoints();
 builder.AddSharedSerilogLogging("UserManagementService");
 
 var repositoryServiceAddress = builder.Configuration["GrpcClients:UserRepositoryService"]
@@ -25,11 +31,14 @@ builder.Services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValid
 builder.Services.AddGrpc(options => options.Interceptors.Add<ExceptionHandlingInterceptor>());
 builder.Services.AddGrpcReflection();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
 app.MapGrpcService<UserGrpcService>();
+app.MapSharedHealthChecks();
 
 if (app.Environment.IsDevelopment())
 {
