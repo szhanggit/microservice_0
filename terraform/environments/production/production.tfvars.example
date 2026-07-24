@@ -1,0 +1,27 @@
+# Copy to production.tfvars (gitignored by the repo's blanket *.tfvars rule) and:
+#   terraform apply -var-file=environments/production/production.tfvars -var-file=environments/production/secrets.tfvars
+#
+# cluster_name/nodegroup_name/fargate_profile_name/db_instance_identifier are
+# all suffixed "-production" so this environment's AWS resources never
+# collide with develop/staging if more than one is provisioned at once in
+# the same account. Sizing is bumped up from develop/staging for real load.
+#
+# node_instance_type is t3.small (Free Tier-eligible) rather than t3.large -
+# new/unverified AWS accounts are restricted to Free Tier-eligible On-Demand
+# instance types until AWS lifts the restriction (Service Quotas request or
+# billing history). Bump this back up before real production use.
+
+cluster_name           = "microservice0-production"
+nodegroup_name         = "microservice0-production-ng-private1"
+fargate_profile_name   = "microservice0-production-fp"
+db_instance_identifier = "microservice0-production-db"
+
+region = "ca-central-1"
+
+node_instance_type = "t3.small"
+node_desired_size  = 3
+node_min_size      = 3
+node_max_size      = 6
+
+db_instance_class      = "db.t3.medium"
+db_publicly_accessible = false

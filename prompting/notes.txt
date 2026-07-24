@@ -3,3 +3,14 @@ claude --resume bf91594d-440d-45df-82b6-65c9fc694f9d --dangerously-skip-permissi
 
 http://localhost:61696/swagger/index.html
 http://localhost:8080/swagger/index.html
+
+
+
+just deploy-all develop latest
+just destroy develop
+
+Check the app is live:
+kubectl get ingress -n microservice0    # find the ALB's hostname once provisioned
+
+
+cd /mnt/d/git/microservice_0/terraform

@@ -1,0 +1,11 @@
+# Copy to backend.tfvars (gitignored by the repo's blanket *.tfvars rule) and
+# run: terraform init -backend-config=environments/production/backend.tfvars
+#
+# Bucket is shared across all three environments (created once by
+# scripts/bootstrap-backend.sh) - only `key` differs per environment, so
+# develop/staging/production never share state. Locking is via S3's native
+# use_lockfile (see ../../backend.tf), no DynamoDB table needed.
+
+bucket = "steven-zhang-learning"
+key    = "microservice_prod/terraform.tfstate"
+region = "ca-central-1"

@@ -491,7 +491,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 7 – Kubernetes
+## Phase 7 – Kubernetes ✅ DONE
 
 * Create manifests for Namespace, ConfigMaps, Secrets, Deployments, Services, Ingress, HPAs, and PodDisruptionBudgets.
 * Add readiness, liveness, and startup probes.
@@ -501,12 +501,13 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 8 – Terraform
+## Phase 8 – Terraform ✅ DONE
 
 * Study every single file in \\wsl.localhost\Ubuntu-22.04\home\steven\terraform\11.eks.basic and exactly follow the design pattern. 
-* Build reusable Terraform modules for networking, EKS, IAM, ECR, and supporting infrastructure.
+* Although 11.eks.basic is similiar with the terraform project I would like to build now, yet change all of naming based on the context of this project.
 * Configure variables, outputs, and remote state.
 * Push container images to ECR and deploy to EKS.
+* Remote state data shall be stored in steven-zhang-learning (S3 bucket), microservice (folder name).
 
 **Deliverable:** Infrastructure can be provisioned and the application deployed with Terraform.
 

@@ -21,8 +21,11 @@ spec:
     spec:
       containers:
         - name: gateway
-          # TODO(Phase 8): replace with the ECR image URI once Terraform provisions it.
-          image: usermanagementgateway:latest
+          # Substituted by terraform/scripts/deploy-app.sh (envsubst) with the
+          # real ECR repository URL from `terraform output ecr_repository_urls`.
+          # For a plain `kubectl apply -f` without that script, replace this
+          # with a literal <account-id>.dkr.ecr.<region>.amazonaws.com/microservice0/usermanagementgateway:<tag>.
+          image: ${GATEWAY_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
