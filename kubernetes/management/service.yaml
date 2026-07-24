@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: management
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: management
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: management
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: grpc

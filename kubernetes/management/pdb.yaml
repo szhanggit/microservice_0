@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: management
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: management
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: management
