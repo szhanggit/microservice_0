@@ -6,11 +6,9 @@ http://localhost:8080/swagger/index.html
 
 
 
-just deploy-all develop latest
+just apply develop
 just destroy develop
-
-Check the app is live:
-kubectl get ingress -n microservice0    # find the ALB's hostname once provisioned
 
 
 cd /mnt/d/git/microservice_0/terraform
+kubectl apply -f ../kubernetes/namespace/namespace.yaml

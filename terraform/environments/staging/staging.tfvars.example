@@ -11,6 +11,7 @@
 # instance types until AWS lifts the restriction (Service Quotas request or
 # billing history). Bump this back up once your account isn't restricted.
 
+environment            = "staging"
 cluster_name           = "microservice0-staging"
 nodegroup_name         = "microservice0-staging-ng-private1"
 fargate_profile_name   = "microservice0-staging-fp"

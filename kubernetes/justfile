@@ -1,0 +1,40 @@
+set shell := ["bash", "-uc"]
+
+# Point local kubectl at the EKS cluster terraform/ created for one
+# environment. Reads the cluster name from SSM Parameter Store - no
+# dependency on the Terraform CLI, terraform/'s state, or S3 backend
+# credentials (see ../terraform/ssm-outputs.tf).
+update-kubeconfig env="develop":
+    ./scripts/update-kubeconfig.sh {{env}}
+
+install-alb-controller env="develop": (update-kubeconfig env)
+    ./scripts/install-alb-controller.sh {{env}}
+
+install-external-dns env="develop": (update-kubeconfig env)
+    ./scripts/install-external-dns.sh {{env}}
+
+apply-db-secret env="develop":
+    ./scripts/apply-db-secret.sh {{env}}
+
+# Build + push the three service images to ECR (needs terraform/ apply first)
+# tag defaults to the current commit's short SHA, not "latest" - so every
+# build is independently addressable/rollback-able instead of overwriting the
+# same floating tag each time.
+build-push env="develop" tag=`git rev-parse --short HEAD`:
+    ./scripts/build-and-push-images.sh {{env}} {{tag}}
+
+deploy-app env="develop" tag=`git rev-parse --short HEAD`:
+    ./scripts/deploy-app.sh {{env}} {{tag}}
+
+# Full app deploy path for one environment, assuming terraform/ has already
+# been applied for it (see ../terraform/justfile)
+deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controller env) (install-external-dns env) (build-push env tag) (deploy-app env tag)
+
+# Tear down the app first so the ALB controller releases its ALB/target
+# groups cleanly - run this BEFORE `just destroy` in ../terraform, or the
+# ALB's security groups/ENIs can block Terraform from deleting the VPC.
+destroy-app env="develop": (update-kubeconfig env)
+    kubectl delete -f ingress/ --ignore-not-found
+    kubectl delete -f namespace/ --ignore-not-found
+    -helm uninstall aws-load-balancer-controller -n kube-system
+    -helm uninstall external-dns -n default

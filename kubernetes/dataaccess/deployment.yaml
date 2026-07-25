@@ -21,10 +21,11 @@ spec:
     spec:
       containers:
         - name: dataaccess
-          # Substituted by terraform/scripts/deploy-app.sh (envsubst) with the
-          # real ECR repository URL from `terraform output ecr_repository_urls`.
-          # For a plain `kubectl apply -f` without that script, replace this
-          # with a literal <account-id>.dkr.ecr.<region>.amazonaws.com/microservice0/userrepositoryservice:<tag>.
+          # Substituted by kubernetes/scripts/deploy-app.sh (envsubst) with the
+          # real ECR repository URL read from SSM Parameter Store (see
+          # terraform/ssm-outputs.tf). For a plain `kubectl apply -f` without
+          # that script, replace this with a literal
+          # <account-id>.dkr.ecr.<region>.amazonaws.com/microservice0/userrepositoryservice:<tag>.
           image: ${DATAACCESS_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:

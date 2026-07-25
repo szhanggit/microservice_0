@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
 # Builds each service's production Dockerfile and pushes it to the ECR
-# repository Terraform created for it (module.ecr). Run after `terraform apply`.
+# repository terraform/ created for it, reading repo URLs from SSM Parameter
+# Store (see ssm-outputs.tf) - no dependency on the Terraform CLI, this
+# project's state, or S3 backend credentials.
 # Requires: aws cli, docker, jq.
 #
-# Usage: ./build-and-push-images.sh [tag]
-#   tag defaults to the short git SHA, falling back to "latest".
+# Usage: ./build-and-push-images.sh <env> [tag]
+#   env defaults are develop | staging | production (must match what
+#   terraform/ was applied with). tag defaults to the short git SHA, falling
+#   back to "latest".
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TF_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_ROOT="$(cd "$TF_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-TAG="${1:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo latest)}"
-REGION="$(terraform -chdir="$TF_DIR" output -raw region 2>/dev/null || echo ca-central-1)"
+ENV="${1:?Usage: $0 <env> [tag]}"
+TAG="${2:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo latest)}"
+REGION="${AWS_REGION:-ca-central-1}"
 
-echo "Reading ECR repository URLs from Terraform state..."
-REPO_URLS_JSON="$(terraform -chdir="$TF_DIR" output -json ecr_repository_urls)"
+echo "Reading ECR repository URLs from SSM Parameter Store..."
+REPO_URLS_JSON="$(aws ssm get-parameter --name "/microservice0/$ENV/ecr_repository_urls" --region "$REGION" --query 'Parameter.Value' --output text)"
 
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 REGISTRY="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"

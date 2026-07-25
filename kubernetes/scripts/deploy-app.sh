@@ -1,33 +1,42 @@
 #!/usr/bin/env bash
 # Applies kubernetes/ to whatever cluster kubectl is currently pointed at,
 # substituting the ECR image placeholders in the three Deployments with the
-# real repository URLs from Terraform state. Requires: envsubst (gettext),
-# jq, kubectl pointed at the target cluster (see update-kubeconfig.sh).
+# real repository URLs from SSM Parameter Store. No dependency on the
+# Terraform CLI, this project's state, or S3 backend credentials. Requires:
+# envsubst (gettext), jq, aws cli, kubectl pointed at the target cluster (see
+# update-kubeconfig.sh).
 #
-# Usage: ./deploy-app.sh [tag]
-#   tag defaults to "latest" - pass the same tag build-and-push-images.sh used
-#   if you want to deploy a specific build instead.
+# Usage: ./deploy-app.sh <env> [tag]
+#   tag defaults to the current commit's short SHA (same default
+#   build-and-push-images.sh uses) - pass an explicit tag if you want to
+#   deploy a different build instead.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TF_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_ROOT="$(cd "$TF_DIR/.." && pwd)"
-K8S_DIR="$REPO_ROOT/kubernetes"
+K8S_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$K8S_DIR/.." && pwd)"
 
-TAG="${1:-latest}"
-REPO_URLS_JSON="$(terraform -chdir="$TF_DIR" output -json ecr_repository_urls)"
+ENV="${1:?Usage: $0 <env> [tag]}"
+TAG="${2:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo latest)}"
+REGION="${AWS_REGION:-ca-central-1}"
+
+REPO_URLS_JSON="$(aws ssm get-parameter --name "/microservice0/$ENV/ecr_repository_urls" --region "$REGION" --query 'Parameter.Value' --output text)"
 
 export DATAACCESS_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.userrepositoryservice'):$TAG"
 export MANAGEMENT_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementservice'):$TAG"
 export GATEWAY_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementgateway'):$TAG"
+export MYSQL_EXTERNAL_NAME="$(aws ssm get-parameter --name "/microservice0/$ENV/db_instance_address" --region "$REGION" --query 'Parameter.Value' --output text)"
 
 echo "dataaccess -> $DATAACCESS_IMAGE"
 echo "management -> $MANAGEMENT_IMAGE"
 echo "gateway    -> $GATEWAY_IMAGE"
+echo "mysql (ExternalName) -> $MYSQL_EXTERNAL_NAME"
 
 kubectl apply -f "$K8S_DIR/namespace/"
 
-"$SCRIPT_DIR/apply-db-secret.sh"
+"$SCRIPT_DIR/apply-db-secret.sh" "$ENV"
+
+envsubst '${MYSQL_EXTERNAL_NAME}' < "$K8S_DIR/dataaccess/externalname.yaml" | kubectl apply -f -
 
 envsubst '${DATAACCESS_IMAGE}' < "$K8S_DIR/dataaccess/deployment.yaml" | kubectl apply -f -
 kubectl apply -f "$K8S_DIR/dataaccess/configmap.yaml" -f "$K8S_DIR/dataaccess/service.yaml" \

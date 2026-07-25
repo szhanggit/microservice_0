@@ -21,33 +21,9 @@ apply env="develop": (init env)
     terraform validate
     terraform apply -var-file=environments/{{env}}/{{env}}.tfvars -var-file=environments/{{env}}/secrets.tfvars -auto-approve
 
-# Build + push the three service images to ECR (needs `terraform apply` first,
-# reads the target environment's ECR repo URLs from terraform output)
-build-push tag="latest":
-    ./scripts/build-and-push-images.sh {{tag}}
-
-update-kubeconfig env="develop": (init env)
-    ./scripts/update-kubeconfig.sh
-
-install-alb-controller:
-    ./scripts/install-alb-controller.sh
-
-apply-db-secret:
-    ./scripts/apply-db-secret.sh
-
-deploy-app tag="latest":
-    ./scripts/deploy-app.sh {{tag}}
-
-# Full path from zero to a running app on EKS, for one environment
-deploy-all env="develop" tag="latest": (apply env)
-    just update-kubeconfig {{env}}
-    just install-alb-controller
-    # just build-push {{tag}}
-    # just deploy-app {{tag}}
-
-# Tear down the app first (so the ALB controller releases its ALB/target
-# groups cleanly), then the AWS Load Balancer Controller, then the infra.
+# Tear down infrastructure. Run `just destroy-app <env>` in ../kubernetes
+# FIRST - the ALB the AWS Load Balancer Controller creates for the Ingress
+# isn't a Terraform resource, and its security groups/ENIs can block this
+# from deleting the VPC if it's still around.
 destroy env="develop": (init env)
-    kubectl delete -f ../kubernetes/ingress/ --ignore-not-found
-    -helm uninstall aws-load-balancer-controller -n kube-system
     terraform destroy -var-file=environments/{{env}}/{{env}}.tfvars -var-file=environments/{{env}}/secrets.tfvars -auto-approve

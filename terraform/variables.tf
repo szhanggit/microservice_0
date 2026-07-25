@@ -4,6 +4,12 @@ variable "cluster_name" {
   default     = "microservice0"
 }
 
+variable "environment" {
+  description = "Environment name (develop/staging/production) - used as the SSM Parameter Store / Secrets Manager path prefix that the kubernetes/ pipeline reads from (see ssm-outputs.tf), decoupling it from needing Terraform CLI/state access"
+  type        = string
+  default     = "develop"
+}
+
 variable "region" {
   description = "AWS region for the EKS cluster"
   type        = string

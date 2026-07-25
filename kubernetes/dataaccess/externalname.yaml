@@ -1,0 +1,24 @@
+# Demonstrates the standard Kubernetes ExternalName pattern: gives the RDS
+# instance terraform/ provisions a stable in-cluster DNS name,
+# mysql.microservice0.svc.cluster.local, which just CNAMEs to the real RDS
+# endpoint. Not required for dataaccess to function - its
+# ConnectionStrings__MySql Secret already carries the real RDS endpoint
+# directly (see kubernetes/scripts/apply-db-secret.sh) - this Service exists
+# purely to demo the pattern, e.g.:
+#   kubectl run -it --rm dnsutils --image=ghcr.io/dvarnier/dnsutils --restart=Never \
+#     -n microservice0 -- nslookup mysql.microservice0.svc.cluster.local
+#
+# Substituted by kubernetes/scripts/deploy-app.sh (envsubst) with the real RDS
+# endpoint read from SSM Parameter Store (see terraform/ssm-outputs.tf).
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: database
+spec:
+  type: ExternalName
+  externalName: ${MYSQL_EXTERNAL_NAME}
