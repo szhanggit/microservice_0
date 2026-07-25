@@ -37,6 +37,17 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   cluster_name = var.cluster_name
   addon_name   = "amazon-cloudwatch-observability"
 
+  # This addon's Application Signals feature defaults to enabled: true with
+  # autoMonitor.monitorAllServices: true, auto-injecting Java/Python/.NET/
+  # Node.js APM auto-instrumentation env vars into every pod in the cluster
+  # regardless of its actual runtime - this project only wants Container
+  # Insights (metrics/logs), so explicitly disable it.
+  configuration_values = jsonencode({
+    applicationSignals = {
+      enabled = false
+    }
+  })
+
   pod_identity_association {
     role_arn        = aws_iam_role.cloudwatch_agent.arn
     service_account = "cloudwatch-agent"

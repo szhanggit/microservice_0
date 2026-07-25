@@ -6,9 +6,21 @@ http://localhost:8080/swagger/index.html
 
 
 
-just apply develop
-just destroy develop
+just apply
+just destroy
 
 
 cd /mnt/d/git/microservice_0/terraform
 kubectl apply -f ../kubernetes/namespace/namespace.yaml
+
+cd /mnt/d/git/microservice_0/kubernetes
+just deploy-all
+just destroy-app
+
+
+
+ https://microservice0.ekslab.xyz/swagger/index.html
+
+
+
+kubectl run mysql-client --rm -it --restart=Never -n microservice0 --image=mysql:8.0.36 --env="MYSQL_PWD=change-me-to-a-real-develop-password" -- mysql -h microservice0-develop-db.c50cu4q2crsg.ca-central-1.rds.amazonaws.com -u dbadmin

@@ -27,3 +27,22 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set region="$REGION" \
   --set vpcId="$VPC_ID" \
   --set image.repository=public.ecr.aws/eks/aws-load-balancer-controller
+
+# The chart regenerates a fresh self-signed webhook CA/cert on every
+# `helm upgrade --install` call, but an already-running controller pod keeps
+# serving the OLD cert from memory (it doesn't hot-reload) - so the webhook
+# config's caBundle and the pod's actual TLS cert disagree until the pod
+# restarts, breaking every Service/Pod mutation cluster-wide with
+# "x509: certificate signed by unknown authority" in the meantime. Force a
+# restart on every run so this script stays safely re-runnable.
+kubectl rollout restart deployment/aws-load-balancer-controller -n kube-system
+
+# The controller registers a mutating webhook that intercepts every Service
+# object cluster-wide (not just Ingress-related ones) as soon as the Helm
+# release exists - but neither `helm upgrade --install` nor the restart above
+# wait for the controller pods to actually be Ready and the webhook to have
+# endpoints. Anything applied right after this (e.g.
+# install-external-dns.sh creating its own Service) can hit
+# "no endpoints available for service aws-load-balancer-webhook-service"
+# without this wait.
+kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
