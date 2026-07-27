@@ -97,7 +97,7 @@ variable "ssh_public_key_name" {
 variable "ecr_repository_names" {
   description = "Image names to create ECR repositories for - must match each service's Dockerfile image name"
   type        = list(string)
-  default     = ["userrepositoryservice", "usermanagementservice", "usermanagementgateway"]
+  default     = ["userrepositoryservice", "usermanagementservice", "usermanagementgateway", "jobmonitorservice"]
 }
 
 variable "fargate_profile_name" {

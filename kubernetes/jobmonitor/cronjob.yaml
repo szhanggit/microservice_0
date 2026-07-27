@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jobmonitor
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: jobmonitor
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: batch
+spec:
+  schedule: "*/1 * * * *"
+  # The job's random delay can run past the next 1-minute trigger. Forbid
+  # skips a new trigger entirely while the previous run is still going,
+  # instead of stacking up concurrent runs - so on any given minute you'll
+  # either see a new Running row, or nothing if the previous run hasn't
+  # finished yet.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # Bounds worst-case runtime (max delay + startup/DB overhead) so a stuck
+      # run can't block triggers forever even under Forbid.
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: jobmonitor
+            app.kubernetes.io/part-of: microservice0
+            app.kubernetes.io/component: batch
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: jobmonitor
+              # Substituted by kubernetes/scripts/deploy-app.sh (envsubst) with
+              # the real ECR repository URL read from SSM Parameter Store (see
+              # terraform/ssm-outputs.tf). For a plain `kubectl apply -f`
+              # without that script, replace this with a literal
+              # <account-id>.dkr.ecr.<region>.amazonaws.com/microservice0/jobmonitorservice:<tag>.
+              image: ${JOBMONITOR_IMAGE}
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: jobmonitor-config
+                - secretRef:
+                    name: dataaccess-db-credentials
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 250m
+                  memory: 128Mi

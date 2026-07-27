@@ -16,6 +16,12 @@ install-external-dns env="develop": (update-kubeconfig env)
 apply-db-secret env="develop":
     ./scripts/apply-db-secret.sh {{env}}
 
+# Drops every table in the database and re-runs create_tables.sql. Also runs
+# automatically as part of deploy-app/deploy-all (see scripts/deploy-app.sh) -
+# this recipe exists to reset the schema on demand without a full redeploy.
+init-db env="develop":
+    ./scripts/init-db.sh {{env}}
+
 # Build + push the three service images to ECR (needs terraform/ apply first)
 # tag defaults to the current commit's short SHA, not "latest" - so every
 # build is independently addressable/rollback-able instead of overwriting the
@@ -33,8 +39,8 @@ deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controll
 # Tear down the app first so the ALB controller releases its ALB/target
 # groups cleanly - run this BEFORE `just destroy` in ../terraform, or the
 # ALB's security groups/ENIs can block Terraform from deleting the VPC.
+# Also cleans up the Route53 records ExternalDNS created (see
+# scripts/cleanup-dns.sh - ExternalDNS's own policy=upsert-only means it will
+# never do this itself).
 destroy-app env="develop": (update-kubeconfig env)
-    kubectl delete -f ingress/ --ignore-not-found
-    kubectl delete -f namespace/ --ignore-not-found
-    -helm uninstall aws-load-balancer-controller -n kube-system
-    -helm uninstall external-dns -n default
+    ./scripts/destroy-app.sh {{env}}

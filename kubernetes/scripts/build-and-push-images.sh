@@ -33,6 +33,7 @@ declare -A DOCKERFILES=(
   [userrepositoryservice]="components/UserRepositoryService/src/private/UserRepositoryService/Dockerfile"
   [usermanagementservice]="components/UserManagementService/src/private/UserManagementService/Dockerfile"
   [usermanagementgateway]="components/UserManagementGateway/src/private/UserManagementGateway/Dockerfile"
+  [jobmonitorservice]="components/JobMonitorService/src/private/JobMonitorService/Dockerfile"
 )
 
 for service in "${!DOCKERFILES[@]}"; do

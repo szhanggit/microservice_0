@@ -25,16 +25,20 @@ REPO_URLS_JSON="$(aws ssm get-parameter --name "/microservice0/$ENV/ecr_reposito
 export DATAACCESS_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.userrepositoryservice'):$TAG"
 export MANAGEMENT_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementservice'):$TAG"
 export GATEWAY_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementgateway'):$TAG"
+export JOBMONITOR_IMAGE="$(echo "$REPO_URLS_JSON" | jq -r '.jobmonitorservice'):$TAG"
 export MYSQL_EXTERNAL_NAME="$(aws ssm get-parameter --name "/microservice0/$ENV/db_instance_address" --region "$REGION" --query 'Parameter.Value' --output text)"
 
 echo "dataaccess -> $DATAACCESS_IMAGE"
 echo "management -> $MANAGEMENT_IMAGE"
 echo "gateway    -> $GATEWAY_IMAGE"
+echo "jobmonitor -> $JOBMONITOR_IMAGE"
 echo "mysql (ExternalName) -> $MYSQL_EXTERNAL_NAME"
 
 kubectl apply -f "$K8S_DIR/namespace/"
 
 "$SCRIPT_DIR/apply-db-secret.sh" "$ENV"
+
+"$SCRIPT_DIR/init-db.sh" "$ENV"
 
 envsubst '${MYSQL_EXTERNAL_NAME}' < "$K8S_DIR/dataaccess/externalname.yaml" | kubectl apply -f -
 
@@ -49,6 +53,9 @@ kubectl apply -f "$K8S_DIR/management/configmap.yaml" -f "$K8S_DIR/management/se
 envsubst '${GATEWAY_IMAGE}' < "$K8S_DIR/gateway/deployment.yaml" | kubectl apply -f -
 kubectl apply -f "$K8S_DIR/gateway/configmap.yaml" -f "$K8S_DIR/gateway/service.yaml" \
   -f "$K8S_DIR/gateway/hpa.yaml" -f "$K8S_DIR/gateway/pdb.yaml"
+
+kubectl apply -f "$K8S_DIR/jobmonitor/configmap.yaml"
+envsubst '${JOBMONITOR_IMAGE}' < "$K8S_DIR/jobmonitor/cronjob.yaml" | kubectl apply -f -
 
 kubectl apply -f "$K8S_DIR/ingress/"
 
