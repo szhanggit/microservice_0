@@ -420,7 +420,7 @@ Always generate
 
 I would **not** ask Claude to generate the entire project in one prompt. Instead, have it complete one milestone at a time. A good breakdown is:
 
-## Phase 1 – Solution Skeleton
+## Phase 1 – Solution Skeleton ✅ DONE
 
 * Create the root folder structure.
 * Create the solution (`.sln`).
@@ -433,7 +433,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 2 – Shared Libraries
+## Phase 2 – Shared Libraries ✅ DONE
 
 * Implement `Shared.Contracts` (DTOs, requests, responses, enums).
 * Define gRPC `.proto` files in `Shared.Protos`.
@@ -444,7 +444,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 3 – UserRepositoryService
+## Phase 3 – UserRepositoryService ✅ DONE
 
 * Create the EF Core `DbContext`.
 * Define the `UserInfo` entity.
@@ -458,7 +458,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 4 – UserManagementService
+## Phase 4 – UserManagementService ✅ DONE
 
 * Implement business validation (duplicate email, required fields, etc.).
 * Consume `UserRepositoryService` via gRPC.
@@ -469,7 +469,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 5 – UserManagementGateway
+## Phase 5 – UserManagementGateway ✅ DONE
 
 * Build REST endpoints.
 * Generate Swagger documentation.
@@ -481,7 +481,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 6 – Docker
+## Phase 6 – Docker ✅ DONE
 
 * Create optimized multi-stage Dockerfiles for each service.
 * Write a root `docker-compose.yml`.
@@ -491,7 +491,7 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 7 – Kubernetes
+## Phase 7 – Kubernetes ✅ DONE
 
 * Create manifests for Namespace, ConfigMaps, Secrets, Deployments, Services, Ingress, HPAs, and PodDisruptionBudgets.
 * Add readiness, liveness, and startup probes.
@@ -501,12 +501,13 @@ I would **not** ask Claude to generate the entire project in one prompt. Instead
 
 ---
 
-## Phase 8 – Terraform
+## Phase 8 – Terraform ✅ DONE
 
 * Study every single file in \\wsl.localhost\Ubuntu-22.04\home\steven\terraform\11.eks.basic and exactly follow the design pattern. 
-* Build reusable Terraform modules for networking, EKS, IAM, ECR, and supporting infrastructure.
+* Although 11.eks.basic is similiar with the terraform project I would like to build now, yet change all of naming based on the context of this project.
 * Configure variables, outputs, and remote state.
 * Push container images to ECR and deploy to EKS.
+* Remote state data shall be stored in steven-zhang-learning (S3 bucket), microservice (folder name).
 
 **Deliverable:** Infrastructure can be provisioned and the application deployed with Terraform.
 

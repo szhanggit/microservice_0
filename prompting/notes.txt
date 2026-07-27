@@ -1,0 +1,25 @@
+claude --resume bf91594d-440d-45df-82b6-65c9fc694f9d --dangerously-skip-permissions
+550e8400-e29b-41d4-a716-446655440000
+
+http://localhost:61696/swagger/index.html
+http://localhost:8080/swagger/index.html
+
+
+cd /mnt/d/git/microservice_0/terraform
+just apply
+just destroy
+
+cd /mnt/d/git/microservice_0/kubernetes
+just deploy-all
+just destroy-app
+
+
+
+ https://microservice0.ekslab.xyz/swagger/index.html
+
+
+
+kubectl run mysql-client --rm -it --restart=Never -n microservice0 --image=mysql:8.0.36 --env="MYSQL_PWD=550e8400-e29b-41d4-a716-446655440000" -- mysql -h microservice0-develop-db.c50cu4q2crsg.ca-central-1.rds.amazonaws.com -u dbadmin
+USE userdb;
+select * from UserInfo;
+select * from JobMonitor;

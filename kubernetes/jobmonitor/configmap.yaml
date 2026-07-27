@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jobmonitor-config
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: jobmonitor
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: batch
+data:
+  # Random delay range (seconds) the job sleeps for on each run, deliberately
+  # allowed to exceed the 60s schedule interval - see cronjob.yaml's
+  # concurrencyPolicy: Forbid for how overlapping triggers are handled.
+  JobDelay__MinSeconds: "0"
+  JobDelay__MaxSeconds: "90"

@@ -1,0 +1,48 @@
+services:
+  mysql:
+    image: mysql:8.0.36
+    container_name: microservice0-mysql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../resources/mysql/create_tables.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - microservice0-network
+
+  userrepositoryservice:
+    image: ${DOCKER_REGISTRY-}userrepositoryservice
+    build:
+      # This compose file's own directory (src/) is the build context Visual Studio uses,
+      # so reach the repo root (three levels up) where libs/ and Directory.*.props live.
+      context: ../../..
+      dockerfile: components/UserRepositoryService/src/private/UserRepositoryService/Dockerfile
+    env_file: .env
+    environment:
+      ConnectionStrings__MySql: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - microservice0-network
+
+networks:
+  microservice0-network:
+    name: microservice0-network
+    driver: bridge
+
+volumes:
+  mysql-data:

@@ -1,0 +1,28 @@
+# Copy to staging.tfvars (gitignored by the repo's blanket *.tfvars rule) and:
+#   terraform apply -var-file=environments/staging/staging.tfvars -var-file=environments/staging/secrets.tfvars
+#
+# cluster_name/nodegroup_name/fargate_profile_name/db_instance_identifier are
+# all suffixed "-staging" so this environment's AWS resources never collide
+# with develop/production if more than one is provisioned at once in the
+# same account.
+#
+# node_instance_type is t3.small (Free Tier-eligible) rather than t3.medium -
+# new/unverified AWS accounts are restricted to Free Tier-eligible On-Demand
+# instance types until AWS lifts the restriction (Service Quotas request or
+# billing history). Bump this back up once your account isn't restricted.
+
+environment            = "staging"
+cluster_name           = "microservice0-staging"
+nodegroup_name         = "microservice0-staging-ng-private1"
+fargate_profile_name   = "microservice0-staging-fp"
+db_instance_identifier = "microservice0-staging-db"
+
+region = "ca-central-1"
+
+node_instance_type = "t3.small"
+node_desired_size  = 2
+node_min_size      = 2
+node_max_size      = 4
+
+db_instance_class      = "db.t3.small"
+db_publicly_accessible = false
