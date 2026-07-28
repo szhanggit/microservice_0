@@ -21,6 +21,15 @@ provider "aws" {
   region = var.region
 }
 
+# Temporary - only needed so `terraform apply` can destroy the orphaned
+# module.eks_amg.* resources left in state from the removed AMG module (it
+# needs the provider they were originally created with to issue the delete
+# calls). Remove this block again once those orphans are gone from state.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_caller_identity" "current" {}
 
 provider "kubernetes" {
@@ -125,6 +134,16 @@ module "eks_container_insights" {
   source = "./modules/eks-container-insights"
 
   cluster_name = var.cluster_name
+
+  depends_on = [module.eks_nodegroup]
+}
+
+module "eks_amp" {
+  source = "./modules/eks-amp"
+
+  cluster_name      = var.cluster_name
+  oidc_provider_arn = module.eks_cluster.oidc_provider_arn
+  oidc_provider_url = module.eks_cluster.oidc_provider_url
 
   depends_on = [module.eks_nodegroup]
 }

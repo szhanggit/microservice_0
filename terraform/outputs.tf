@@ -90,6 +90,18 @@ output "cloudwatch_agent_role_arn" {
   value = module.eks_container_insights.cloudwatch_agent_role_arn
 }
 
+output "amp_workspace_id" {
+  value = module.eks_amp.amp_workspace_id
+}
+
+output "amp_prometheus_endpoint" {
+  value = module.eks_amp.amp_prometheus_endpoint
+}
+
+output "amp_remote_write_role_arn" {
+  value = module.eks_amp.amp_remote_write_role_arn
+}
+
 output "fargate_profile_arn" {
   value = module.eks_fargate_profile.fargate_profile_arn
 }
