@@ -376,6 +376,14 @@ resource "aws_eks_node_group" "private1" {
     }
   }
 
+  # EKS propagates these specific tag keys down to the underlying ASG - this
+  # is how Cluster Autoscaler's AWS cloud provider discovers which ASGs it's
+  # allowed to scale (see modules/eks-cluster-autoscaler for the IRSA side).
+  tags = {
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.worker_node_policy,
     aws_iam_role_policy_attachment.cni_policy,

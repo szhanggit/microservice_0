@@ -35,6 +35,7 @@ echo "jobmonitor -> $JOBMONITOR_IMAGE"
 echo "mysql (ExternalName) -> $MYSQL_EXTERNAL_NAME"
 
 kubectl apply -f "$K8S_DIR/namespace/"
+kubectl apply -f "$K8S_DIR/xray/"
 
 "$SCRIPT_DIR/apply-db-secret.sh" "$ENV"
 

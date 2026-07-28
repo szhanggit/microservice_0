@@ -30,6 +30,31 @@ resource "aws_db_subnet_group" "rds" {
   }
 }
 
+# Role RDS assumes to publish OS-level metrics (CPU, memory, disk I/O per
+# process) to CloudWatch Logs when Enhanced Monitoring is enabled - separate
+# from any application-facing IAM, this is purely RDS-to-CloudWatch.
+data "aws_iam_policy_document" "rds_enhanced_monitoring_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["monitoring.rds.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+  name               = "${var.db_instance_identifier}-enhanced-monitoring-role"
+  assume_role_policy = data.aws_iam_policy_document.rds_enhanced_monitoring_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+  role       = aws_iam_role.rds_enhanced_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
 resource "aws_db_instance" "main" {
   identifier     = var.db_instance_identifier
   engine         = "mysql"
@@ -59,4 +84,13 @@ resource "aws_db_instance" "main" {
   backup_retention_period = 0
 
   skip_final_snapshot = true
+
+  monitoring_interval = var.monitoring_interval
+  monitoring_role_arn = var.monitoring_interval > 0 ? aws_iam_role.rds_enhanced_monitoring.arn : null
+
+  # Performance Insights requires at least db.t3.medium for MySQL on this
+  # engine version (confirmed via `aws rds describe-orderable-db-instance-options`
+  # - db.t3.micro/small both report SupportsPerformanceInsights=false).
+  performance_insights_enabled          = var.performance_insights_enabled
+  performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_period : null
 }

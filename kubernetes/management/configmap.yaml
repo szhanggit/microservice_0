@@ -10,3 +10,5 @@ metadata:
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
   GrpcClients__UserRepositoryService: "http://dataaccess.microservice0.svc.cluster.local:8080"
+  AWS_XRAY_DAEMON_ADDRESS: "xray-daemon.default.svc.cluster.local:2000"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy.default.svc.cluster.local:4317"

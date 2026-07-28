@@ -14,6 +14,10 @@ public sealed class UserGrpcService(
 {
     public override async Task<UserReply> CreateUser(CreateUserRequest request, ServerCallContext context)
     {
+        logger.LogInformation(
+            "Received CreateUser request: FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            request.FirstName, request.LastName, request.Email);
+
         EnsureValid(createUserValidator.Validate(request));
 
         var emailExists = await repositoryClient.EmailExistsAsync(
@@ -29,24 +33,36 @@ public sealed class UserGrpcService(
             new RepoProto.CreateUserRequest { FirstName = request.FirstName, LastName = request.LastName, Email = request.Email },
             cancellationToken: context.CancellationToken);
 
-        logger.LogInformation("Created user {UserId}", created.User.UserId);
+        logger.LogInformation(
+            "Returning CreateUser response: UserId={UserId}, FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            created.User.UserId, created.User.FirstName, created.User.LastName, created.User.Email);
 
         return new UserReply { User = created.User };
     }
 
     public override async Task<UserReply> GetUserById(GetUserByIdRequest request, ServerCallContext context)
     {
+        logger.LogInformation("Received GetUserById request: UserId={UserId}", request.UserId);
+
         EnsureValidUserId(request.UserId);
 
         var reply = await repositoryClient.GetUserByIdAsync(
             new RepoProto.GetUserByIdRequest { UserId = request.UserId },
             cancellationToken: context.CancellationToken);
 
+        logger.LogInformation(
+            "Returning GetUserById response: UserId={UserId}, FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            reply.User.UserId, reply.User.FirstName, reply.User.LastName, reply.User.Email);
+
         return new UserReply { User = reply.User };
     }
 
     public override async Task<UserReply> UpdateUser(UpdateUserRequest request, ServerCallContext context)
     {
+        logger.LogInformation(
+            "Received UpdateUser request: UserId={UserId}, FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            request.UserId, request.FirstName, request.LastName, request.Email);
+
         EnsureValid(updateUserValidator.Validate(request));
 
         var current = await repositoryClient.GetUserByIdAsync(
@@ -75,32 +91,40 @@ public sealed class UserGrpcService(
             },
             cancellationToken: context.CancellationToken);
 
-        logger.LogInformation("Updated user {UserId}", request.UserId);
+        logger.LogInformation(
+            "Returning UpdateUser response: UserId={UserId}, FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            updated.User.UserId, updated.User.FirstName, updated.User.LastName, updated.User.Email);
 
         return new UserReply { User = updated.User };
     }
 
     public override async Task<DeleteUserReply> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
+        logger.LogInformation("Received DeleteUser request: UserId={UserId}", request.UserId);
+
         EnsureValidUserId(request.UserId);
 
         var reply = await repositoryClient.DeleteUserAsync(
             new RepoProto.DeleteUserRequest { UserId = request.UserId },
             cancellationToken: context.CancellationToken);
 
-        logger.LogInformation("Deleted user {UserId}", request.UserId);
+        logger.LogInformation("Returning DeleteUser response: UserId={UserId}, Success={Success}", request.UserId, reply.Success);
 
         return new DeleteUserReply { Success = reply.Success };
     }
 
     public override async Task<SearchUsersReply> SearchUsers(SearchUsersRequest request, ServerCallContext context)
     {
+        logger.LogInformation("Received SearchUsers request: Name={Name}", request.Name);
+
         var reply = await repositoryClient.SearchUsersAsync(
             new RepoProto.SearchUsersRequest { Name = request.Name },
             cancellationToken: context.CancellationToken);
 
         var result = new SearchUsersReply();
         result.Users.AddRange(reply.Users);
+
+        logger.LogInformation("Returning SearchUsers response: {UserCount} user(s) found", result.Users.Count);
 
         return result;
     }

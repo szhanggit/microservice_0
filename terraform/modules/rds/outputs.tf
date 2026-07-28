@@ -21,3 +21,7 @@ output "db_instance_port" {
 output "db_name" {
   value = aws_db_instance.main.db_name
 }
+
+output "rds_enhanced_monitoring_role_arn" {
+  value = aws_iam_role.rds_enhanced_monitoring.arn
+}

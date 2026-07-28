@@ -29,7 +29,9 @@ public sealed class UserGrpcService(IUserRepository userRepository, ILogger<User
 
         await userRepository.AddAsync(user, context.CancellationToken);
 
-        logger.LogInformation("Created user {UserId}", user.UserId);
+        logger.LogInformation(
+            "Saved UserInfo record {UserId}: FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            user.UserId, user.FirstName, user.LastName, user.Email);
 
         return MapToReply(user);
     }
@@ -60,7 +62,9 @@ public sealed class UserGrpcService(IUserRepository userRepository, ILogger<User
             throw new RpcException(new Status(StatusCode.NotFound, $"User with id '{userId}' was not found."));
         }
 
-        logger.LogInformation("Updated user {UserId}", userId);
+        logger.LogInformation(
+            "Saved UserInfo record {UserId}: FirstName={FirstName}, LastName={LastName}, Email={Email}",
+            updated.UserId, updated.FirstName, updated.LastName, updated.Email);
 
         return MapToReply(updated);
     }

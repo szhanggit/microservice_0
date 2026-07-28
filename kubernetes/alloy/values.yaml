@@ -1,0 +1,151 @@
+# Helm values for the grafana/alloy chart. Unlike install-alb-controller.sh/
+# install-external-dns.sh's plain --set flags, this needs a real values file -
+# Alloy's River config is too large for inline flags (same kind of deviation
+# db-init/job.yaml already makes by skipping Helm entirely).
+#
+# ${AMP_REMOTE_WRITE_URL} and ${REGION} are envsubst placeholders, substituted
+# by scripts/install-alloy.sh the same way deploy-app.sh substitutes
+# ${MYSQL_EXTERNAL_NAME}.
+#
+# Alloy runs in DaemonSet mode (this chart's default) - one pod per node, same
+# shape as xray-daemon. Each replica scopes itself to only the pods scheduled
+# on its own node (via the NODE_NAME Downward API env var below, matched
+# against __meta_kubernetes_pod_node_name) so metrics/logs aren't duplicated
+# once per node.
+serviceAccount:
+  create: false
+  name: amp-remote-write
+
+alloy:
+  extraEnv:
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: LOKI_PUSH_URL
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: LOKI_PUSH_URL
+    - name: LOKI_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: LOKI_USERNAME
+    - name: LOKI_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: LOKI_PASSWORD
+    - name: TEMPO_OTLP_ENDPOINT
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: TEMPO_OTLP_ENDPOINT
+    - name: TEMPO_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: TEMPO_USERNAME
+    - name: TEMPO_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: TEMPO_PASSWORD
+
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+
+  configMap:
+    create: true
+    content: |
+      // Discover every pod on this node only - reused by both the metrics
+      // and logs pipelines below so neither one scrapes/ships the same pod
+      // once per DaemonSet replica.
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pods_same_node" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          regex         = env("NODE_NAME")
+          action        = "keep"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+      }
+
+      // --- Metrics: scrape pods on this node, remote_write (sigv4) to AMP ---
+      prometheus.scrape "kubernetes_pods" {
+        targets    = discovery.relabel.pods_same_node.output
+        forward_to = [prometheus.remote_write.amp.receiver]
+      }
+
+      prometheus.remote_write "amp" {
+        endpoint {
+          url = "${AMP_REMOTE_WRITE_URL}"
+
+          sigv4 {
+            region = "${REGION}"
+          }
+        }
+      }
+
+      // --- Logs: tail pods on this node, ship to Grafana Cloud Loki ---
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods_same_node.output
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+      loki.write "grafana_cloud" {
+        endpoint {
+          url = env("LOKI_PUSH_URL")
+
+          basic_auth {
+            username = env("LOKI_USERNAME")
+            password = env("LOKI_PASSWORD")
+          }
+        }
+      }
+
+      // --- Traces: receive OTLP from the .NET services, forward to Grafana Cloud Tempo ---
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+
+        output {
+          traces = [otelcol.exporter.otlp.grafana_cloud.input]
+        }
+      }
+
+      otelcol.auth.basic "grafana_cloud" {
+        username = env("TEMPO_USERNAME")
+        password = env("TEMPO_PASSWORD")
+      }
+
+      otelcol.exporter.otlp "grafana_cloud" {
+        client {
+          endpoint = env("TEMPO_OTLP_ENDPOINT")
+          auth     = otelcol.auth.basic.grafana_cloud.handler
+        }
+      }

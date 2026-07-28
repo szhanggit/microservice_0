@@ -79,6 +79,41 @@ variable "db_port" {
   default     = 3306
 }
 
+variable "monitoring_interval" {
+  description = <<-EOT
+    Enhanced Monitoring granularity in seconds (0, 1, 5, 10, 15, 30, or 60).
+    0 disables Enhanced Monitoring entirely. Unlike Performance Insights, this
+    is supported on every instance class including db.t3.micro.
+  EOT
+  type        = number
+  default     = 60
+}
+
+variable "performance_insights_enabled" {
+  description = <<-EOT
+    Enable Performance Insights (query-level/wait-event visibility). Requires
+    at least db.t3.medium for MySQL - db.t3.micro/small report
+    SupportsPerformanceInsights=false (verified via
+    `aws rds describe-orderable-db-instance-options`). Terraform apply will
+    fail if enabled against an unsupported instance class.
+
+    Defaults to false: this account is on an AWS free-plan that hard-blocks
+    ModifyDBInstance to any non-free-tier instance class (FreeTierRestrictionError
+    on db.t3.medium, confirmed live) - so on a free-plan account Performance
+    Insights isn't reachable at all without upgrading the account plan first,
+    independent of anything Terraform controls. Flip to true (and bump
+    db_instance_class to db.t3.medium+) once the account plan allows it.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "performance_insights_retention_period" {
+  description = "Performance Insights retention in days. 7 is the free-tier default - longer retention (up to 731 days) is billed."
+  type        = number
+  default     = 7
+}
+
 variable "db_publicly_accessible" {
   description = <<-EOT
     Whether the DB instance gets a public IP. Defaults to false: dataaccess

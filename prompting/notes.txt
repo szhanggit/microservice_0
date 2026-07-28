@@ -15,7 +15,7 @@ just destroy-app
 
 
 
- https://microservice0.ekslab.xyz/swagger/index.html
+https://microservice0.ekslab.xyz/swagger/index.html
 
 
 
