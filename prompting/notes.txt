@@ -45,6 +45,7 @@ export TEMPO_PASSWORD="<same token>"
 
 
 -------------------------------------------------------------
-PS D:\git\microservice_0> docker compose up --build -d
-PS D:\git\microservice_0> docker compose down -v
-http://localhost:4200 
+cd D:\git\microservice_0\components\UserManagementWeb
+docker compose --env-file ../UserRepositoryService/src/.env up --build -d
+docker compose --env-file ../UserRepositoryService/src/.env down
+http://localhost:4200

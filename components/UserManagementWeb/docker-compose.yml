@@ -4,22 +4,32 @@
 # the HEALTHCHECK already defined in that service's own Dockerfile, so services start
 # in the right order without a fixed sleep.
 #
-# Usage:
-#   docker compose up --build
+# Usage (run from this directory, components/UserManagementWeb):
+#   docker compose --env-file ../UserRepositoryService/src/.env up --build -d
 #   Then open http://localhost:4200
+#
+# --env-file is required (not just `env_file:` on the mysql/userrepositoryservice
+# services below): the ${MYSQL_*} references used for variable substitution in
+# this YAML file (e.g. building ConnectionStrings__MySql) are only resolved from
+# the shell environment or a .env file that Compose auto-discovers next to this
+# file - neither exists here, since the real secret file intentionally lives
+# with UserRepositoryService instead of being duplicated into this folder.
 #
 # This intentionally does not reuse components/*/src/docker-compose*.yml - those
 # per-service files (plus their .override.yml) exist for Visual Studio's own
 # "Docker Compose" debug launch profile (dev-cert/user-secrets volume mounts, HTTPS
 # ports) and aren't meant to be combined with each other. This file is a from-scratch,
 # HTTP-only composition of the same Dockerfiles for a plain `docker compose up`.
+#
+# Paths below are relative to this file's location (components/UserManagementWeb):
+# repo root is ../.., the components/ folder is ..
 
 services:
   mysql:
     image: mysql:8.0.36
     container_name: microservice0-mysql
     restart: unless-stopped
-    env_file: components/UserRepositoryService/src/.env
+    env_file: ../UserRepositoryService/src/.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -27,7 +37,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./components/UserRepositoryService/resources/mysql/create_tables.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Runs once, only against an empty /var/lib/mysql (fresh volume). Creates
+      # userdb/UserInfo and seeds the 5 baseline users via INSERT IGNORE.
+      - ../UserRepositoryService/resources/mysql/create_tables.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -39,9 +51,9 @@ services:
 
   userrepositoryservice:
     build:
-      context: .
+      context: ../..
       dockerfile: components/UserRepositoryService/src/private/UserRepositoryService/Dockerfile
-    env_file: components/UserRepositoryService/src/.env
+    env_file: ../UserRepositoryService/src/.env
     environment:
       ConnectionStrings__MySql: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};"
     depends_on:
@@ -52,7 +64,7 @@ services:
 
   usermanagementservice:
     build:
-      context: .
+      context: ../..
       dockerfile: components/UserManagementService/src/private/UserManagementService/Dockerfile
     environment:
       GrpcClients__UserRepositoryService: "http://userrepositoryservice:8080"
@@ -64,7 +76,7 @@ services:
 
   usermanagementgateway:
     build:
-      context: .
+      context: ../..
       dockerfile: components/UserManagementGateway/src/private/UserManagementGateway/Dockerfile
     environment:
       GrpcClients__UserManagementService: "http://usermanagementservice:8080"
@@ -79,7 +91,7 @@ services:
 
   usermanagementweb:
     build:
-      context: ./components/UserManagementWeb
+      context: .
     ports:
       - "4200:8080"
     depends_on:
