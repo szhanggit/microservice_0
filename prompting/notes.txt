@@ -51,3 +51,12 @@ cd D:\git\microservice_0\components\UserManagementWeb
 docker compose --env-file ../UserRepositoryService/src/.env up --build -d
 docker compose --env-file ../UserRepositoryService/src/.env down
 http://localhost:4200
+
+
+
+
+-------------------------------------------------------------
+Manual one-time setup still needed on your end (can't be automated):
+1. cd terraform/github-actions-oidc && just apply — creates the OIDC provider/role.
+2. terraform apply for whichever environment(s) you use — picks up the new additional_admin_role_arn wiring (grants the role cluster access).
+3. In GitHub repo Settings → Secrets and variables → Actions, add: AWS_GITHUB_ACTIONS_ROLE_ARN (from step 1's terraform output role_arn), and PROM_PASSWORD/LOKI_PASSWORD/TEMPO_PASSWORD (only needed if you'll run the alloy-secret workflow).

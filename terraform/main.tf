@@ -56,10 +56,16 @@ module "vpc" {
 module "eks_cluster" {
   source = "./modules/eks-cluster"
 
-  cluster_name               = var.cluster_name
-  kubernetes_version         = var.kubernetes_version
-  public_subnet_ids          = module.vpc.public_subnet_ids
-  additional_admin_role_arn  = var.additional_admin_role_arn
+  cluster_name       = var.cluster_name
+  kubernetes_version = var.kubernetes_version
+  public_subnet_ids  = module.vpc.public_subnet_ids
+
+  # GitHub Actions' OIDC role (created in the separate github-actions-oidc/
+  # state - see its main.tf) gets an EKS access entry here so its workflows
+  # can run kubectl/helm against this cluster. Computed directly rather than
+  # via var.additional_admin_role_arn's blank default, since that role lives
+  # in a different Terraform state and can't be passed in as a module output.
+  additional_admin_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.github_actions_role_name}"
 
   depends_on = [module.vpc]
 }
