@@ -3,25 +3,41 @@
 # Alloy's River config is too large for inline flags (same kind of deviation
 # db-init/job.yaml already makes by skipping Helm entirely).
 #
-# ${AMP_REMOTE_WRITE_URL} and ${REGION} are envsubst placeholders, substituted
-# by scripts/install-alloy.sh the same way deploy-app.sh substitutes
-# ${MYSQL_EXTERNAL_NAME}.
+# All three backends here are Grafana Cloud (metrics/logs/traces) - Amazon
+# Managed Prometheus was dropped (see terraform/modules/eks-amp's removal):
+# Grafana Cloud's Prometheus data source doesn't expose AWS SigV4 auth on
+# this account's plan, so querying AMP from Grafana Cloud was a dead end.
+# Grafana Cloud's own hosted Prometheus (Mimir) takes basic_auth over
+# remote_write instead, same shape as the Loki/Tempo pipelines below - no AWS
+# IAM/IRSA involved anywhere in this chart anymore, so no envsubst step is
+# needed either; this file is applied to Helm as-is.
 #
 # Alloy runs in DaemonSet mode (this chart's default) - one pod per node, same
 # shape as xray-daemon. Each replica scopes itself to only the pods scheduled
 # on its own node (via the NODE_NAME Downward API env var below, matched
 # against __meta_kubernetes_pod_node_name) so metrics/logs aren't duplicated
 # once per node.
-serviceAccount:
-  create: false
-  name: amp-remote-write
-
 alloy:
   extraEnv:
     - name: NODE_NAME
       valueFrom:
         fieldRef:
           fieldPath: spec.nodeName
+    - name: PROM_REMOTE_WRITE_URL
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: PROM_REMOTE_WRITE_URL
+    - name: PROM_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: PROM_USERNAME
+    - name: PROM_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: alloy-grafana-cloud-credentials
+          key: PROM_PASSWORD
     - name: LOKI_PUSH_URL
       valueFrom:
         secretKeyRef:
@@ -94,18 +110,19 @@ alloy:
         }
       }
 
-      // --- Metrics: scrape pods on this node, remote_write (sigv4) to AMP ---
+      // --- Metrics: scrape pods on this node, remote_write to Grafana Cloud Prometheus (Mimir) ---
       prometheus.scrape "kubernetes_pods" {
         targets    = discovery.relabel.pods_same_node.output
-        forward_to = [prometheus.remote_write.amp.receiver]
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
-      prometheus.remote_write "amp" {
+      prometheus.remote_write "grafana_cloud" {
         endpoint {
-          url = "${AMP_REMOTE_WRITE_URL}"
+          url = env("PROM_REMOTE_WRITE_URL")
 
-          sigv4 {
-            region = "${REGION}"
+          basic_auth {
+            username = env("PROM_USERNAME")
+            password = env("PROM_PASSWORD")
           }
         }
       }

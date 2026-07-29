@@ -138,16 +138,6 @@ module "eks_container_insights" {
   depends_on = [module.eks_nodegroup]
 }
 
-module "eks_amp" {
-  source = "./modules/eks-amp"
-
-  cluster_name      = var.cluster_name
-  oidc_provider_arn = module.eks_cluster.oidc_provider_arn
-  oidc_provider_url = module.eks_cluster.oidc_provider_url
-
-  depends_on = [module.eks_nodegroup]
-}
-
 module "eks_fargate_profile" {
   source = "./modules/eks-fargate-profile"
 

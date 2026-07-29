@@ -44,14 +44,6 @@ resource "aws_ssm_parameter" "db_instance_address" {
   value = module.rds.db_instance_address
 }
 
-# Read by kubernetes/scripts/install-alloy.sh to build the Prometheus
-# remote_write URL for Alloy's AMP pipeline.
-resource "aws_ssm_parameter" "amp_prometheus_endpoint" {
-  name  = "${local.ssm_prefix}/amp_prometheus_endpoint"
-  type  = "String"
-  value = module.eks_amp.amp_prometheus_endpoint
-}
-
 # Same format dataaccess's ConnectionStrings__MySql secret expects. Stored in
 # Secrets Manager rather than SSM since it holds the DB master password.
 resource "aws_secretsmanager_secret" "db_connection_string" {

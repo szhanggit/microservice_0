@@ -23,3 +23,21 @@ kubectl run mysql-client --rm -it --restart=Never -n microservice0 --image=mysql
 USE userdb;
 select * from UserInfo;
 select * from JobMonitor;
+
+
+
+
+-------------------------------------------------------------
+
+
+2. Export credentials and populate the secret, then run the script:
+export PROM_REMOTE_WRITE_URL="https://prometheus-prod-32-prod-ca-east-0.grafana.net/api/prom/push"
+export PROM_USERNAME="3403370"
+export PROM_PASSWORD="<same glc_... token as before>"
+export LOKI_PUSH_URL="https://logs-prod-018.grafana.net/loki/api/v1/push"
+export LOKI_USERNAME="1697360"
+export LOKI_PASSWORD="<same token>"
+export TEMPO_OTLP_ENDPOINT="https://tempo-prod-13-prod-ca-east-0.grafana.net:443"
+export TEMPO_USERNAME="1691661"
+export TEMPO_PASSWORD="<same token>"
+./kubernetes/scripts/apply-alloy-secret.sh

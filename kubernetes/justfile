@@ -17,14 +17,14 @@ install-cluster-autoscaler env="develop": (update-kubeconfig env)
     ./scripts/install-cluster-autoscaler.sh {{env}}
 
 install-alloy env="develop": (update-kubeconfig env)
-    ./scripts/install-alloy.sh {{env}}
+    ./scripts/install-alloy.sh
 
 apply-db-secret env="develop":
     ./scripts/apply-db-secret.sh {{env}}
 
-# Populates Grafana Cloud Loki/Tempo credentials for Alloy - run once you have
-# a Grafana Cloud account (see kubernetes/scripts/apply-alloy-secret.sh for
-# the env vars to export first).
+# Populates Grafana Cloud Prometheus/Loki/Tempo credentials for Alloy - run
+# once you have a Grafana Cloud account (see
+# kubernetes/scripts/apply-alloy-secret.sh for the env vars to export first).
 apply-alloy-secret:
     ./scripts/apply-alloy-secret.sh
 
