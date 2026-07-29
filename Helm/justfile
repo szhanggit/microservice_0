@@ -1,0 +1,63 @@
+set shell := ["bash", "-uc"]
+
+# Self-contained Helm-based pipeline - fully independent of kubernetes/
+# (which can be deleted; nothing here references it). All scripts/manifests
+# it needs live under this directory (scripts/, xray/, db-init/, alloy/).
+
+# Point local kubectl at the EKS cluster terraform/ created for one
+# environment. Reads the cluster name from SSM Parameter Store - no
+# dependency on the Terraform CLI, terraform/'s state, or S3 backend
+# credentials (see ../terraform/ssm-outputs.tf).
+update-kubeconfig env="develop":
+    ./scripts/update-kubeconfig.sh {{env}}
+
+install-alb-controller env="develop": (update-kubeconfig env)
+    ./scripts/install-alb-controller.sh {{env}}
+
+install-external-dns env="develop": (update-kubeconfig env)
+    ./scripts/install-external-dns.sh {{env}}
+
+install-cluster-autoscaler env="develop": (update-kubeconfig env)
+    ./scripts/install-cluster-autoscaler.sh {{env}}
+
+install-alloy env="develop": (update-kubeconfig env)
+    ./scripts/install-alloy.sh
+
+apply-db-secret env="develop":
+    ./scripts/apply-db-secret.sh {{env}}
+
+# Populates Grafana Cloud Prometheus/Loki/Tempo credentials for Alloy - run
+# once you have a Grafana Cloud account (see scripts/apply-alloy-secret.sh
+# for the env vars to export first).
+apply-alloy-secret:
+    ./scripts/apply-alloy-secret.sh
+
+# Drops every table in the database and re-runs create_tables.sql. Also runs
+# automatically as part of deploy-app/deploy-all (see scripts/deploy-app.sh) -
+# this recipe exists to reset the schema on demand without a full redeploy.
+init-db env="develop":
+    ./scripts/init-db.sh {{env}}
+
+# Build + push the four service images to ECR (needs terraform/ apply first).
+# tag defaults to the current commit's short SHA, not "latest" - so every
+# build is independently addressable/rollback-able instead of overwriting the
+# same floating tag each time.
+build-push env="develop" tag=`git rev-parse --short HEAD`:
+    ./scripts/build-and-push-images.sh {{env}} {{tag}}
+
+# Deploys the app layer as a Helm release (see scripts/deploy-app.sh and
+# Chart.yaml).
+deploy-app env="develop" tag=`git rev-parse --short HEAD`:
+    ./scripts/deploy-app.sh {{env}} {{tag}}
+
+# Full app deploy path for one environment, assuming terraform/ has already
+# been applied for it (see ../terraform/justfile)
+deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controller env) (install-external-dns env) (install-cluster-autoscaler env) (install-alloy env) (build-push env tag) (deploy-app env tag)
+
+# Tear down the app first so the ALB controller releases its ALB/target
+# groups cleanly - run this BEFORE `just destroy` in ../terraform, or the
+# ALB's security groups/ENIs can block Terraform from deleting the VPC. Also
+# cleans up the Route53 records ExternalDNS created (see scripts/destroy-app.sh
+# - ExternalDNS's own policy=upsert-only means it will never do this itself).
+destroy-app env="develop": (update-kubeconfig env)
+    ./scripts/destroy-app.sh {{env}}

@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dataaccess
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "dataaccess" "component" "backend") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.dataaccess.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dataaccess

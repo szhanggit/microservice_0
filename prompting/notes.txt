@@ -13,7 +13,9 @@ cd /mnt/d/git/microservice_0/kubernetes
 just deploy-all
 just destroy-app
 
-
+cd /mnt/d/git/microservice_0/Helm
+just deploy-all
+just destroy-app
 
 https://microservice0.ekslab.xyz/swagger/index.html
 

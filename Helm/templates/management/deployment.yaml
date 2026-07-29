@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "management" "component" "backend") | nindent 4 }}
+spec:
+  replicas: {{ .Values.management.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: management
+  template:
+    metadata:
+      labels:
+        {{- include "microservice0.labels" (dict "name" "management" "component" "backend") | nindent 8 }}
+    spec:
+      containers:
+        - name: management
+          image: {{ required "images.management is required, e.g. --set images.management=<ecr-url>:<tag>" .Values.images.management | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 8080
+            - name: health
+              containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: management-config
+          resources:
+            {{- toYaml .Values.management.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: health
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5
