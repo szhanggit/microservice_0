@@ -1,0 +1,14 @@
+<div class="modal d-block" tabindex="-1" role="dialog" [attr.aria-labelledby]="titleId" aria-modal="true">
+  <div class="modal-dialog" [class.modal-sm]="size() === 'sm'" [class.modal-lg]="size() === 'lg'" [class.modal-xl]="size() === 'xl'">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" [id]="titleId">{{ title() }}</h2>
+        <button type="button" class="btn-close" aria-label="Close" (click)="closed.emit()"></button>
+      </div>
+      <div class="modal-body">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop show" (click)="onBackdropClick()"></div>

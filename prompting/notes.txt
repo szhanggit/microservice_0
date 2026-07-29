@@ -41,3 +41,10 @@ export TEMPO_OTLP_ENDPOINT="https://tempo-prod-13-prod-ca-east-0.grafana.net:443
 export TEMPO_USERNAME="1691661"
 export TEMPO_PASSWORD="<same token>"
 ./kubernetes/scripts/apply-alloy-secret.sh
+
+
+
+-------------------------------------------------------------
+PS D:\git\microservice_0> docker compose up --build -d
+PS D:\git\microservice_0> docker compose down -v
+http://localhost:4200 

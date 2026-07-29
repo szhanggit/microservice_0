@@ -1,0 +1,60 @@
+<app-modal-shell [title]="isEditMode() ? 'Edit user' : 'Create new user'" (closed)="closed.emit()">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <div class="mb-3">
+      <label for="firstName" class="form-label">First name</label>
+      <input
+        id="firstName"
+        type="text"
+        class="form-control"
+        formControlName="firstName"
+        [maxlength]="validation.firstNameMaxLength"
+        [class.is-invalid]="form.controls.firstName.invalid && form.controls.firstName.touched"
+      />
+      @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
+        <div class="invalid-feedback">First name is required.</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label for="lastName" class="form-label">Last name</label>
+      <input
+        id="lastName"
+        type="text"
+        class="form-control"
+        formControlName="lastName"
+        [maxlength]="validation.lastNameMaxLength"
+        [class.is-invalid]="form.controls.lastName.invalid && form.controls.lastName.touched"
+      />
+      @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
+        <div class="invalid-feedback">Last name is required.</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label for="email" class="form-label">Email</label>
+      <input
+        id="email"
+        type="email"
+        class="form-control"
+        formControlName="email"
+        [maxlength]="validation.emailMaxLength"
+        [class.is-invalid]="form.controls.email.invalid && form.controls.email.touched"
+      />
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <div class="invalid-feedback">A valid email is required.</div>
+      }
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="closed.emit()" [disabled]="isSaving()">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+        }
+        Save
+      </button>
+    </div>
+  </form>
+</app-modal-shell>

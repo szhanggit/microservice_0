@@ -1,0 +1,13 @@
+{
+  "/users": {
+    "target": "http://localhost:5267",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/health": {
+    "target": "http://localhost:5267",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
