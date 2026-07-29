@@ -1,0 +1,6 @@
+# Force LF regardless of core.autocrlf - not strictly required for YAML
+# (GitHub's parser doesn't care), but keeps these consistent with the rest of
+# the pipeline (see Helm/.gitattributes, added after CRLF broke the bash
+# scripts there) and avoids noisy line-ending-only diffs on Windows edits.
+*.yml text eol=lf
+*.yaml text eol=lf

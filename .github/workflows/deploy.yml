@@ -1,12 +1,15 @@
 name: Deploy
 
-# Auto-deploys `develop` on every push to that branch; staging/production
-# only ever run via manual dispatch (never auto-deployed off a push). See
-# Helm/justfile's deploy-all recipe - this workflow calls the same recipes in
-# the same order, just as separate steps for easier per-stage debugging.
+# Auto-deploys the `develop` environment whenever `develop` is merged into
+# `master` (a push to master) - not on every push to develop directly, so
+# work-in-progress commits on develop don't trigger a deploy, only the
+# deliberate act of merging. staging/production only ever run via manual
+# dispatch (never auto-deployed off a push). See Helm/justfile's deploy-all
+# recipe - this workflow calls the same recipes in the same order, just as
+# separate steps for easier per-stage debugging.
 on:
   push:
-    branches: [develop]
+    branches: [master]
   workflow_dispatch:
     inputs:
       environment:
