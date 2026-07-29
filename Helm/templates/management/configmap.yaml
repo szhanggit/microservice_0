@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: management-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "management" "component" "backend") | nindent 4 }}
+data:
+  ASPNETCORE_ENVIRONMENT: {{ .Values.management.aspnetEnvironment | quote }}
+  GrpcClients__UserRepositoryService: "http://dataaccess.{{ .Values.namespace }}.svc.cluster.local:8080"
+  AWS_XRAY_DAEMON_ADDRESS: {{ .Values.observability.xrayDaemonAddress | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otlpEndpoint | quote }}

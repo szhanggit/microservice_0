@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataaccess
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "dataaccess" "component" "backend") | nindent 4 }}
+spec:
+  replicas: {{ .Values.dataaccess.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dataaccess
+  template:
+    metadata:
+      labels:
+        {{- include "microservice0.labels" (dict "name" "dataaccess" "component" "backend") | nindent 8 }}
+    spec:
+      containers:
+        - name: dataaccess
+          image: {{ required "images.dataaccess is required, e.g. --set images.dataaccess=<ecr-url>:<tag>" .Values.images.dataaccess | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 8080
+            - name: health
+              containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: dataaccess-config
+            - secretRef:
+                name: dataaccess-db-credentials
+          resources:
+            {{- toYaml .Values.dataaccess.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: health
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5

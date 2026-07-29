@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: microservice0
+  labels:
+    app.kubernetes.io/name: db-init
+    app.kubernetes.io/part-of: microservice0
+    app.kubernetes.io/component: batch
+spec:
+  # Job specs are immutable - kubernetes/scripts/init-db.sh deletes any
+  # previous db-init Job before applying this one, so every reset starts a
+  # fresh Job rather than trying to update one in place (unlike a Deployment's
+  # rolling update).
+  backoffLimit: 2
+  activeDeadlineSeconds: 120
+  # Finished Jobs (and their Pods) are garbage-collected automatically after
+  # 5 minutes, so re-running this doesn't accumulate stale objects even if
+  # something forgets to delete the previous one first.
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: db-init
+        app.kubernetes.io/part-of: microservice0
+        app.kubernetes.io/component: batch
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-init
+          image: mysql:8.0.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              HOST=$(echo "$ConnectionStrings__MySql" | sed -n 's/.*Server=\([^;]*\);.*/\1/p')
+              PORT=$(echo "$ConnectionStrings__MySql" | sed -n 's/.*Port=\([^;]*\);.*/\1/p')
+              DB=$(echo "$ConnectionStrings__MySql" | sed -n 's/.*Database=\([^;]*\);.*/\1/p')
+              DBUSER=$(echo "$ConnectionStrings__MySql" | sed -n 's/.*User=\([^;]*\);.*/\1/p')
+              export MYSQL_PWD=$(echo "$ConnectionStrings__MySql" | sed -n 's/.*Password=\([^;]*\);.*/\1/p')
+
+              echo "Resetting schema on $HOST:$PORT (database: $DB)..."
+              mysql -h "$HOST" -P "$PORT" -u "$DBUSER" -e "DROP DATABASE IF EXISTS \`$DB\`;"
+
+              for f in $(ls /scripts/*.sql | sort); do
+                echo "Applying $f"
+                mysql -h "$HOST" -P "$PORT" -u "$DBUSER" < "$f"
+              done
+
+              echo "Schema reset complete."
+          # Same Secret every other workload already uses (populated by
+          # apply-db-secret.sh from Secrets Manager) - no separate credentials
+          # plumbing needed for this Job.
+          envFrom:
+            - secretRef:
+                name: dataaccess-db-credentials
+          volumeMounts:
+            - name: sql-scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: sql-scripts
+          configMap:
+            # Published by kubernetes/scripts/init-db.sh from each component's
+            # create_tables.sql (kubectl create configmap --from-file), not
+            # checked in here, so the SQL has one source of truth.
+            name: db-init-scripts

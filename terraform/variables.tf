@@ -34,6 +34,12 @@ variable "additional_admin_role_arn" {
   default     = ""
 }
 
+variable "github_actions_role_name" {
+  description = "IAM role name for GitHub Actions OIDC, created in the separate terraform/github-actions-oidc/ state (an account-wide singleton, applied once - not per environment like everything else here). Referenced here only to compute its ARN for additional_admin_role_arn below, since it's a different Terraform state so can't be passed as a module output - default must match that root's variables.tf role_name."
+  type        = string
+  default     = "github-actions-microservice0"
+}
+
 variable "vpc_cidr_block" {
   description = "CIDR block for the EKS VPC"
   type        = string

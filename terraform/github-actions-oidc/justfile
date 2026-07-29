@@ -1,0 +1,18 @@
+set shell := ["bash", "-uc"]
+
+# One-shot root module - no per-environment variants (the OIDC provider/role
+# are account-wide singletons). Uses the same shared S3 bucket as ../ (see
+# ../scripts/bootstrap-backend.sh) - run that first if it hasn't been run yet.
+init:
+    terraform init -reconfigure -backend-config=backend.tfvars
+
+plan: init
+    terraform validate
+    terraform plan
+
+apply: init
+    terraform validate
+    terraform apply -auto-approve
+
+destroy: init
+    terraform destroy -auto-approve

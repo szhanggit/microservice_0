@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jobmonitor
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "jobmonitor" "component" "batch") | nindent 4 }}
+spec:
+  schedule: {{ .Values.jobmonitor.schedule | quote }}
+  # The job's random delay can run past the next 1-minute trigger. Forbid
+  # skips a new trigger entirely while the previous run is still going,
+  # instead of stacking up concurrent runs - so on any given minute you'll
+  # either see a new Running row, or nothing if the previous run hasn't
+  # finished yet.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # Bounds worst-case runtime (max delay + startup/DB overhead) so a stuck
+      # run can't block triggers forever even under Forbid.
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            {{- include "microservice0.labels" (dict "name" "jobmonitor" "component" "batch") | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: jobmonitor
+              image: {{ required "images.jobmonitor is required, e.g. --set images.jobmonitor=<ecr-url>:<tag>" .Values.images.jobmonitor | quote }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              envFrom:
+                - configMapRef:
+                    name: jobmonitor-config
+                - secretRef:
+                    name: dataaccess-db-credentials
+              resources:
+                {{- toYaml .Values.jobmonitor.resources | nindent 16 }}

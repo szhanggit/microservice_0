@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dataaccess-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "dataaccess" "component" "backend") | nindent 4 }}
+data:
+  # Development also enables gRPC reflection (Program.cs gates it on IsDevelopment()).
+  # Flip to "Development" if you want that during local/demo verification.
+  ASPNETCORE_ENVIRONMENT: {{ .Values.dataaccess.aspnetEnvironment | quote }}
+  AWS_XRAY_DAEMON_ADDRESS: {{ .Values.observability.xrayDaemonAddress | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otlpEndpoint | quote }}

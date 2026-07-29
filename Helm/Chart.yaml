@@ -1,0 +1,12 @@
+apiVersion: v2
+name: microservice0
+description: >-
+  Core application workloads (dataaccess, management, gateway, jobmonitor,
+  ingress) for the microservice0 demo. Deliberately excludes db-init, DB/Alloy
+  secrets, xray-daemon, and third-party infra charts (aws-load-balancer-
+  controller, external-dns, cluster-autoscaler, alloy) - those stay imperative
+  or upstream-Helm-managed via kubernetes/scripts/*.sh, see that directory's
+  README-equivalent comments for why.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

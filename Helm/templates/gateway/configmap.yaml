@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "microservice0.labels" (dict "name" "gateway" "component" "frontend") | nindent 4 }}
+data:
+  # Development also enables Swagger UI (Program.cs gates it on IsDevelopment()).
+  # Flip to "Production" in values.yaml once Swagger isn't needed for demo/verification.
+  ASPNETCORE_ENVIRONMENT: {{ .Values.gateway.aspnetEnvironment | quote }}
+  GrpcClients__UserManagementService: "http://management.{{ .Values.namespace }}.svc.cluster.local:8080"
+  AWS_XRAY_DAEMON_ADDRESS: {{ .Values.observability.xrayDaemonAddress | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otlpEndpoint | quote }}

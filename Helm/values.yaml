@@ -1,0 +1,99 @@
+# Target namespace for every resource in this chart except templates that are
+# explicitly documented otherwise (there are none - xray-daemon/db-init/infra
+# charts live outside this chart entirely, see Chart.yaml).
+namespace: microservice0
+
+# Image references - left blank on purpose. Supplied via --set at deploy time
+# by kubernetes/scripts/deploy-app.sh, which reads the real ECR repository
+# URLs from SSM Parameter Store (see terraform/ssm-outputs.tf). For a plain
+# `helm install` without that script, pass a literal
+# <account-id>.dkr.ecr.<region>.amazonaws.com/microservice0/<service>:<tag>.
+images:
+  dataaccess: ""
+  management: ""
+  gateway: ""
+  jobmonitor: ""
+
+imagePullPolicy: IfNotPresent
+
+# RDS endpoint for the demo ExternalName Service (dataaccess/externalname.yaml)
+# - supplied via --set at deploy time, same SSM-sourced value deploy-app.sh
+# already reads today for this exact purpose.
+mysql:
+  externalName: ""
+
+# Shared observability endpoints referenced by every service's ConfigMap.
+observability:
+  xrayDaemonAddress: "xray-daemon.default.svc.cluster.local:2000"
+  otlpEndpoint: "http://alloy.default.svc.cluster.local:4317"
+
+dataaccess:
+  aspnetEnvironment: "Production" # Development also enables gRPC reflection
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    minAvailable: 1
+
+management:
+  aspnetEnvironment: "Production"
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    minAvailable: 1
+
+gateway:
+  aspnetEnvironment: "Development" # enables Swagger UI - flip to "Production" once not needed for demo/verification
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    minAvailable: 1
+
+jobmonitor:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  # The job's random delay (below) can run past the next 1-minute trigger -
+  # see cronjob.yaml's concurrencyPolicy: Forbid for how that's handled.
+  schedule: "*/1 * * * *"
+  jobDelay:
+    minSeconds: 0
+    maxSeconds: 90
+
+ingress:
+  domain: microservice0.ekslab.xyz
+  certificateArn: "arn:aws:acm:ca-central-1:286664220642:certificate/79114ecf-5ba1-4fac-a025-4709372825fe"
+  loadBalancerName: microservice0-ingress

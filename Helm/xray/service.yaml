@@ -1,0 +1,18 @@
+# ClusterIP so pods in the microservice0 namespace can reach the daemon at
+# xray-daemon.default.svc.cluster.local:2000 (set as AWS_XRAY_DAEMON_ADDRESS
+# in dataaccess/management/gateway ConfigMaps).
+apiVersion: v1
+kind: Service
+metadata:
+  name: xray-daemon
+  namespace: default
+  labels:
+    app.kubernetes.io/name: xray-daemon
+spec:
+  selector:
+    app.kubernetes.io/name: xray-daemon
+  ports:
+    - name: xray-udp
+      port: 2000
+      targetPort: xray-udp
+      protocol: UDP
