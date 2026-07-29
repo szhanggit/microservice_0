@@ -1,0 +1,119 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">Users</h1>
+    <button type="button" class="btn btn-primary" (click)="openCreateModal()">+ Create New User</button>
+  </div>
+
+  <div class="mb-3">
+    <label for="userSearch" class="form-label visually-hidden">Search users</label>
+    <input
+      id="userSearch"
+      type="search"
+      class="form-control"
+      placeholder="Search by name…"
+      [value]="searchTerm()"
+      (input)="onSearchInput($event)"
+    />
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col" role="button" (click)="toggleSort('firstName')">
+            First name
+            @if (sortColumn() === 'firstName') {
+              <span aria-hidden="true">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+            }
+          </th>
+          <th scope="col" role="button" (click)="toggleSort('lastName')">
+            Last name
+            @if (sortColumn() === 'lastName') {
+              <span aria-hidden="true">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+            }
+          </th>
+          <th scope="col" role="button" (click)="toggleSort('email')">
+            Email
+            @if (sortColumn() === 'email') {
+              <span aria-hidden="true">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+            }
+          </th>
+          <th scope="col" class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of pageView().items; track user.userId) {
+          <tr>
+            <td>{{ user.firstName }}</td>
+            <td>{{ user.lastName }}</td>
+            <td>{{ user.email }}</td>
+            <td class="text-end">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary me-2"
+                [attr.aria-label]="'Edit ' + user.firstName + ' ' + user.lastName"
+                (click)="openEditModal(user)"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                [attr.aria-label]="'Delete ' + user.firstName + ' ' + user.lastName"
+                (click)="requestDelete(user)"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">No users found.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="d-flex align-items-center justify-content-between" aria-label="User list pagination">
+    <button type="button" class="btn btn-outline-primary" (click)="openCreateModal()">+ Create New User</button>
+
+    <div class="d-flex align-items-center gap-2">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [disabled]="pageView().page <= 1"
+        (click)="goToPage(pageView().page - 1)"
+      >
+        Previous
+      </button>
+      <span>Page {{ pageView().page }} of {{ pageView().totalPages }} ({{ pageView().totalCount }} users)</span>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [disabled]="pageView().page >= pageView().totalPages"
+        (click)="goToPage(pageView().page + 1)"
+      >
+        Next
+      </button>
+    </div>
+  </nav>
+</div>
+
+@if (loading.isLoading()) {
+  <app-spinner [overlay]="true" />
+}
+
+@if (isModalOpen()) {
+  <app-user-form-modal [user]="modalUser()" (saved)="onUserSaved()" (closed)="closeModal()" />
+}
+
+@if (userPendingDelete(); as user) {
+  <app-confirm-dialog
+    title="Delete user"
+    [message]="'Delete ' + user.firstName + ' ' + user.lastName + '? This cannot be undone.'"
+    confirmLabel="Delete"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()"
+  />
+}

@@ -22,6 +22,10 @@ HOSTNAME="$(kubectl get ingress -n microservice0 -o jsonpath='{.items[0].metadat
 kubectl delete -f "$K8S_DIR/ingress/" --ignore-not-found
 kubectl delete -f "$K8S_DIR/namespace/" --ignore-not-found
 
+# Lives in the default namespace (IRSA trust policy requires it), so deleting
+# namespace/ above (which only removes microservice0) never cleans this up.
+kubectl delete -f "$K8S_DIR/xray/" --ignore-not-found
+
 if [ -n "$HOSTNAME" ]; then
   "$SCRIPT_DIR/cleanup-dns.sh" "$ENV" "$HOSTNAME"
 else
@@ -30,3 +34,5 @@ fi
 
 helm uninstall aws-load-balancer-controller -n kube-system || true
 helm uninstall external-dns -n default || true
+helm uninstall cluster-autoscaler -n kube-system || true
+helm uninstall alloy -n default || true

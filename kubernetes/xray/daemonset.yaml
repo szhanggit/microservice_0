@@ -1,0 +1,40 @@
+# Receives trace segments over UDP from the app's gRPC/HTTP services (see
+# AWS_XRAY_DAEMON_ADDRESS in dataaccess/management/gateway ConfigMaps) and
+# forwards them to the X-Ray API. Deployed in the `default` namespace and
+# using the `xray-daemon` ServiceAccount because both are hardcoded into the
+# IRSA trust policy in terraform/modules/eks-xray/main.tf - the ServiceAccount
+# itself is created by that Terraform module, not here.
+#
+# No official Helm chart exists for this daemon (unlike the ALB controller/
+# ExternalDNS), so this is a plain manifest applied via `kubectl apply`.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: xray-daemon
+  namespace: default
+  labels:
+    app.kubernetes.io/name: xray-daemon
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xray-daemon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xray-daemon
+    spec:
+      serviceAccountName: xray-daemon
+      containers:
+        - name: xray-daemon
+          image: public.ecr.aws/xray/aws-xray-daemon:latest
+          ports:
+            - name: xray-udp
+              containerPort: 2000
+              protocol: UDP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 24Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi

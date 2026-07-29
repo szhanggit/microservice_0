@@ -11,3 +11,5 @@ data:
   # Development also enables gRPC reflection (Program.cs gates it on IsDevelopment()).
   # Flip to "Development" if you want that during local/demo verification.
   ASPNETCORE_ENVIRONMENT: "Production"
+  AWS_XRAY_DAEMON_ADDRESS: "xray-daemon.default.svc.cluster.local:2000"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy.default.svc.cluster.local:4317"

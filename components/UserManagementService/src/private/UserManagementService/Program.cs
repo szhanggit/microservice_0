@@ -1,3 +1,5 @@
+using Amazon.XRay.Recorder.Handlers.System.Net;
+using OpenTelemetry.Trace;
 using Serilog;
 using Shared.Common.Extensions;
 using Shared.Common.Validators;
@@ -16,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureContainerGrpcAndHealthEndpoints();
 builder.AddSharedSerilogLogging("UserManagementService");
+builder.AddSharedOpenTelemetryTracing("UserManagementService", t => t.AddGrpcClientInstrumentation());
 
 var repositoryServiceAddress = builder.Configuration["GrpcClients:UserRepositoryService"]
     ?? throw new InvalidOperationException("Configuration 'GrpcClients:UserRepositoryService' was not found.");
@@ -23,7 +26,7 @@ var repositoryServiceAddress = builder.Configuration["GrpcClients:UserRepository
 builder.Services.AddGrpcClient<RepoProto.UserRepositoryGrpcService.UserRepositoryGrpcServiceClient>(options =>
 {
     options.Address = new Uri(repositoryServiceAddress);
-});
+}).AddHttpMessageHandler(() => new HttpClientXRayTracingHandler());
 
 builder.Services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();
@@ -35,6 +38,7 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+app.UseSharedXRayTracing("UserManagementService");
 app.UseSerilogRequestLogging();
 
 app.MapGrpcService<UserGrpcService>();

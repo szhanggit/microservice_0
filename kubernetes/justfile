@@ -13,8 +13,20 @@ install-alb-controller env="develop": (update-kubeconfig env)
 install-external-dns env="develop": (update-kubeconfig env)
     ./scripts/install-external-dns.sh {{env}}
 
+install-cluster-autoscaler env="develop": (update-kubeconfig env)
+    ./scripts/install-cluster-autoscaler.sh {{env}}
+
+install-alloy env="develop": (update-kubeconfig env)
+    ./scripts/install-alloy.sh
+
 apply-db-secret env="develop":
     ./scripts/apply-db-secret.sh {{env}}
+
+# Populates Grafana Cloud Prometheus/Loki/Tempo credentials for Alloy - run
+# once you have a Grafana Cloud account (see
+# kubernetes/scripts/apply-alloy-secret.sh for the env vars to export first).
+apply-alloy-secret:
+    ./scripts/apply-alloy-secret.sh
 
 # Drops every table in the database and re-runs create_tables.sql. Also runs
 # automatically as part of deploy-app/deploy-all (see scripts/deploy-app.sh) -
@@ -34,7 +46,7 @@ deploy-app env="develop" tag=`git rev-parse --short HEAD`:
 
 # Full app deploy path for one environment, assuming terraform/ has already
 # been applied for it (see ../terraform/justfile)
-deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controller env) (install-external-dns env) (build-push env tag) (deploy-app env tag)
+deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controller env) (install-external-dns env) (install-cluster-autoscaler env) (install-alloy env) (build-push env tag) (deploy-app env tag)
 
 # Tear down the app first so the ALB controller releases its ALB/target
 # groups cleanly - run this BEFORE `just destroy` in ../terraform, or the

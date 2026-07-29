@@ -31,7 +31,9 @@ await using (var insertCommand = connection.CreateCommand())
     await insertCommand.ExecuteNonQueryAsync();
 }
 
-Log.Information("Job {JobId} started at {StartedAt:O}", jobId, startedAt);
+Log.Information(
+    "Saved JobMonitor record {JobId}: JobStartDateTime={JobStartDateTime:O}, JobEndDateTime={JobEndDateTime}, Status={Status}",
+    jobId, startedAt, (DateTime?)null, "Running");
 
 try
 {
@@ -39,25 +41,35 @@ try
     Log.Information("Job {JobId} sleeping for {DelaySeconds}s", jobId, delaySeconds);
     await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
 
+    var endedAt = DateTime.UtcNow;
+
     await using var updateCommand = connection.CreateCommand();
     updateCommand.CommandText =
         "UPDATE JobMonitor SET JobEndDateTime = @endedAt, Status = 'Succeeded' WHERE Id = @id;";
-    updateCommand.Parameters.AddWithValue("@endedAt", DateTime.UtcNow);
+    updateCommand.Parameters.AddWithValue("@endedAt", endedAt);
     updateCommand.Parameters.AddWithValue("@id", jobId.ToString());
     await updateCommand.ExecuteNonQueryAsync();
 
-    Log.Information("Job {JobId} succeeded", jobId);
+    Log.Information(
+        "Saved JobMonitor record {JobId}: JobStartDateTime={JobStartDateTime:O}, JobEndDateTime={JobEndDateTime:O}, Status={Status}",
+        jobId, startedAt, endedAt, "Succeeded");
 }
 catch (Exception ex)
 {
     Log.Error(ex, "Job {JobId} failed", jobId);
 
+    var endedAt = DateTime.UtcNow;
+
     await using var failCommand = connection.CreateCommand();
     failCommand.CommandText =
         "UPDATE JobMonitor SET JobEndDateTime = @endedAt, Status = 'Failed' WHERE Id = @id;";
-    failCommand.Parameters.AddWithValue("@endedAt", DateTime.UtcNow);
+    failCommand.Parameters.AddWithValue("@endedAt", endedAt);
     failCommand.Parameters.AddWithValue("@id", jobId.ToString());
     await failCommand.ExecuteNonQueryAsync();
+
+    Log.Information(
+        "Saved JobMonitor record {JobId}: JobStartDateTime={JobStartDateTime:O}, JobEndDateTime={JobEndDateTime:O}, Status={Status}",
+        jobId, startedAt, endedAt, "Failed");
 
     Log.CloseAndFlush();
     throw;

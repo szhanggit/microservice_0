@@ -1,0 +1,7 @@
+<app-modal-shell [title]="title()" size="sm" (closed)="cancelled.emit()">
+  <p>{{ message() }}</p>
+  <div class="d-flex justify-content-end gap-2">
+    <button type="button" class="btn btn-outline-secondary" (click)="cancelled.emit()">{{ cancelLabel() }}</button>
+    <button type="button" class="btn btn-danger" (click)="confirmed.emit()">{{ confirmLabel() }}</button>
+  </div>
+</app-modal-shell>

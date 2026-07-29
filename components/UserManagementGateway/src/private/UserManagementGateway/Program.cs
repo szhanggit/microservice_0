@@ -1,4 +1,6 @@
+using Amazon.XRay.Recorder.Handlers.System.Net;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Trace;
 using Serilog;
 using Shared.Common.Extensions;
 using Shared.Common.Validators;
@@ -15,6 +17,7 @@ AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddSharedSerilogLogging("UserManagementGateway");
+builder.AddSharedOpenTelemetryTracing("UserManagementGateway", t => t.AddGrpcClientInstrumentation());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -29,7 +32,7 @@ var managementServiceAddress = builder.Configuration["GrpcClients:UserManagement
 builder.Services.AddGrpcClient<ManagementProto.UserManagementGrpcService.UserManagementGrpcServiceClient>(options =>
 {
     options.Address = new Uri(managementServiceAddress);
-});
+}).AddHttpMessageHandler(() => new HttpClientXRayTracingHandler());
 
 builder.Services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();
@@ -40,6 +43,7 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+app.UseSharedXRayTracing("UserManagementGateway");
 app.UseSerilogRequestLogging();
 
 app.UseExceptionHandler();

@@ -127,6 +127,10 @@ output "db_instance_port" {
   value = module.rds.db_instance_port
 }
 
+output "rds_enhanced_monitoring_role_arn" {
+  value = module.rds.rds_enhanced_monitoring_role_arn
+}
+
 # Ready to drop straight into dataaccess's Secret - see
 # scripts/apply-db-secret.sh, which reads this via `terraform output -raw`.
 output "db_connection_string" {

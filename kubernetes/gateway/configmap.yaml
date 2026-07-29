@@ -12,3 +12,5 @@ data:
   # Flip to "Development" if you want Swagger reachable during demo/local verification.
   ASPNETCORE_ENVIRONMENT: "Development"
   GrpcClients__UserManagementService: "http://management.microservice0.svc.cluster.local:8080"
+  AWS_XRAY_DAEMON_ADDRESS: "xray-daemon.default.svc.cluster.local:2000"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy.default.svc.cluster.local:4317"

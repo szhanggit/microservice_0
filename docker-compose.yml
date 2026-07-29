@@ -1,0 +1,97 @@
+# Brings up the full stack in one command: MySQL -> UserRepositoryService (gRPC)
+# -> UserManagementService (gRPC) -> UserManagementGateway (REST) -> UserManagementWeb
+# (Angular, served by nginx). Each `depends_on: condition: service_healthy` waits on
+# the HEALTHCHECK already defined in that service's own Dockerfile, so services start
+# in the right order without a fixed sleep.
+#
+# Usage:
+#   docker compose up --build
+#   Then open http://localhost:4200
+#
+# This intentionally does not reuse components/*/src/docker-compose*.yml - those
+# per-service files (plus their .override.yml) exist for Visual Studio's own
+# "Docker Compose" debug launch profile (dev-cert/user-secrets volume mounts, HTTPS
+# ports) and aren't meant to be combined with each other. This file is a from-scratch,
+# HTTP-only composition of the same Dockerfiles for a plain `docker compose up`.
+
+services:
+  mysql:
+    image: mysql:8.0.36
+    container_name: microservice0-mysql
+    restart: unless-stopped
+    env_file: components/UserRepositoryService/src/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./components/UserRepositoryService/resources/mysql/create_tables.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - microservice0-network
+
+  userrepositoryservice:
+    build:
+      context: .
+      dockerfile: components/UserRepositoryService/src/private/UserRepositoryService/Dockerfile
+    env_file: components/UserRepositoryService/src/.env
+    environment:
+      ConnectionStrings__MySql: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - microservice0-network
+
+  usermanagementservice:
+    build:
+      context: .
+      dockerfile: components/UserManagementService/src/private/UserManagementService/Dockerfile
+    environment:
+      GrpcClients__UserRepositoryService: "http://userrepositoryservice:8080"
+    depends_on:
+      userrepositoryservice:
+        condition: service_healthy
+    networks:
+      - microservice0-network
+
+  usermanagementgateway:
+    build:
+      context: .
+      dockerfile: components/UserManagementGateway/src/private/UserManagementGateway/Dockerfile
+    environment:
+      GrpcClients__UserManagementService: "http://usermanagementservice:8080"
+    ports:
+      # Host access to Swagger/the raw REST API, independent of the frontend.
+      - "61696:8080"
+    depends_on:
+      usermanagementservice:
+        condition: service_healthy
+    networks:
+      - microservice0-network
+
+  usermanagementweb:
+    build:
+      context: ./components/UserManagementWeb
+    ports:
+      - "4200:8080"
+    depends_on:
+      usermanagementgateway:
+        condition: service_healthy
+    networks:
+      - microservice0-network
+
+networks:
+  microservice0-network:
+    name: microservice0-network
+    driver: bridge
+
+volumes:
+  mysql-data:
