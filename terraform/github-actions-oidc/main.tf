@@ -46,11 +46,17 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
 
     # StringLike (not StringEquals) - the trailing "*" is only a wildcard
     # under StringLike, scoping this to any branch/tag/workflow run in this
-    # one repo without matching literally nothing.
+    # one repo without matching literally nothing. The owner/repo segments
+    # must include their immutable "@ID" suffixes (see variables.tf's
+    # github_owner_id/github_repo_id) - a plain "repo:${var.github_repo}:*"
+    # never matches the real token and silently denies every assume-role
+    # call (see CloudTrail; this cost real debugging time to track down).
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      values = [
+        "repo:${split("/", var.github_repo)[0]}@${var.github_owner_id}/${split("/", var.github_repo)[1]}@${var.github_repo_id}:*"
+      ]
     }
   }
 }
