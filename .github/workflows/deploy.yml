@@ -198,6 +198,10 @@ jobs:
 
       - name: Install Alloy
         working-directory: Helm
+        env:
+          PROM_PASSWORD: ${{ secrets.PROM_PASSWORD }}
+          LOKI_PASSWORD: ${{ secrets.LOKI_PASSWORD }}
+          TEMPO_PASSWORD: ${{ secrets.TEMPO_PASSWORD }}
         run: just install-alloy "$ENVIRONMENT"
 
       - name: Build and push images
