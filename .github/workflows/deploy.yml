@@ -224,11 +224,16 @@ jobs:
       # image's SARIF still uploads even if an earlier image already failed
       # the job, so partial results aren't lost - though scanning stops at
       # the first failing image (fail-fast, same philosophy as `test`).
+      # ignore-unfixed: true skips CVEs with no available patch (e.g. the
+      # aspnet:8.0 base image's zlib1g CVE-2023-45853, which Debian has
+      # marked will_not_fix) - without it, the gate would fail every build
+      # forever regardless of anything in this repo's own code/dependencies.
       - name: Scan dataaccess image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.images.outputs.dataaccess }}
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
           exit-code: "1"
           format: sarif
           output: trivy-dataaccess.sarif
@@ -244,6 +249,7 @@ jobs:
         with:
           image-ref: ${{ steps.images.outputs.management }}
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
           exit-code: "1"
           format: sarif
           output: trivy-management.sarif
@@ -259,6 +265,7 @@ jobs:
         with:
           image-ref: ${{ steps.images.outputs.gateway }}
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
           exit-code: "1"
           format: sarif
           output: trivy-gateway.sarif
@@ -274,6 +281,7 @@ jobs:
         with:
           image-ref: ${{ steps.images.outputs.jobmonitor }}
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
           exit-code: "1"
           format: sarif
           output: trivy-jobmonitor.sarif
