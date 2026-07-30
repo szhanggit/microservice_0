@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureContainerGrpcAndHealthEndpoints();
 builder.AddSharedSerilogLogging("UserRepositoryService");
-builder.AddSharedOpenTelemetryTracing("UserRepositoryService", t => t.AddEntityFrameworkCoreInstrumentation());
+builder.AddSharedOpenTelemetry("UserRepositoryService", t => t.AddEntityFrameworkCoreInstrumentation());
 
 var connectionString = builder.Configuration.GetConnectionString("MySql")
     ?? throw new InvalidOperationException("Connection string 'MySql' was not found.");

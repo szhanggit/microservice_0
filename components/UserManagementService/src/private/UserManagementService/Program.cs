@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureContainerGrpcAndHealthEndpoints();
 builder.AddSharedSerilogLogging("UserManagementService");
-builder.AddSharedOpenTelemetryTracing("UserManagementService", t => t.AddGrpcClientInstrumentation());
+builder.AddSharedOpenTelemetry("UserManagementService", t => t.AddGrpcClientInstrumentation());
 
 var repositoryServiceAddress = builder.Configuration["GrpcClients:UserRepositoryService"]
     ?? throw new InvalidOperationException("Configuration 'GrpcClients:UserRepositoryService' was not found.");

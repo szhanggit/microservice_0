@@ -78,9 +78,9 @@ alloy:
   configMap:
     create: true
     content: |
-      // Discover every pod on this node only - reused by both the metrics
-      // and logs pipelines below so neither one scrapes/ships the same pod
-      // once per DaemonSet replica.
+      // Discover every pod on this node only - reused by both the
+      // infra-metrics scrape and logs pipelines below so neither one
+      // scrapes/ships the same pod once per DaemonSet replica.
       discovery.kubernetes "pods" {
         role = "pod"
       }
@@ -110,9 +110,26 @@ alloy:
         }
       }
 
-      // --- Metrics: scrape pods on this node, remote_write to Grafana Cloud Prometheus (Mimir) ---
+      // --- Infra metrics: scrape pods on this node, remote_write to Grafana
+      // Cloud Prometheus (Mimir). Only covers pods that expose their own
+      // /metrics endpoint (coredns, cluster-autoscaler, external-dns, the
+      // ALB controller, aws-node, Alloy itself, ...) - the microservice0
+      // namespace is excluded here since those services don't implement a
+      // scrapable /metrics endpoint. They push metrics via OTLP instead (see
+      // the OTLP receiver below), so leaving them in this scrape would just
+      // show every target permanently "down" for no actionable reason.
+      discovery.relabel "scrape_targets" {
+        targets = discovery.relabel.pods_same_node.output
+
+        rule {
+          source_labels = ["namespace"]
+          regex         = "microservice0"
+          action        = "drop"
+        }
+      }
+
       prometheus.scrape "kubernetes_pods" {
-        targets    = discovery.relabel.pods_same_node.output
+        targets    = discovery.relabel.scrape_targets.output
         forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
@@ -144,15 +161,24 @@ alloy:
         }
       }
 
-      // --- Traces: receive OTLP from the .NET services, forward to Grafana Cloud Tempo ---
+      // --- Traces + app metrics: receive OTLP from the .NET services.
+      // Traces forward to Grafana Cloud Tempo; metrics are converted to
+      // Prometheus format and forwarded into the same remote_write used by
+      // the infra scrape above, reusing its existing Grafana Cloud Prometheus
+      // credentials - no separate OTLP metrics endpoint/credentials needed.
       otelcol.receiver.otlp "default" {
         grpc {
           endpoint = "0.0.0.0:4317"
         }
 
         output {
-          traces = [otelcol.exporter.otlp.grafana_cloud.input]
+          metrics = [otelcol.exporter.prometheus.default.input]
+          traces  = [otelcol.exporter.otlp.grafana_cloud.input]
         }
+      }
+
+      otelcol.exporter.prometheus "default" {
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
       otelcol.auth.basic "grafana_cloud" {
