@@ -34,6 +34,47 @@ env:
   AWS_REGION: ca-central-1
 
 jobs:
+  # Runs first, before anything touches AWS. check-cluster/deploy both
+  # transitively depend on this (see check-cluster's needs: below) via
+  # needs:, so a test failure stops the whole pipeline immediately - neither
+  # of those jobs starts at all. JobMonitorService has no test project
+  # (nothing to run for it); the other three .NET services' solutions each
+  # include both their unit and integration test projects - integration
+  # tests run against a real in-memory SQLite database (see e.g.
+  # tests/integration/Repositories/UserRepositoryTests.cs), no external
+  # services needed.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test UserRepositoryService (unit + integration)
+        run: dotnet test components/UserRepositoryService/src/UserRepositoryService.sln
+
+      - name: Test UserManagementService (unit + integration)
+        run: dotnet test components/UserManagementService/src/UserManagementService.sln
+
+      - name: Test UserManagementGateway (unit + integration)
+        run: dotnet test components/UserManagementGateway/src/UserManagementGateway.sln
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: components/UserManagementWeb/package-lock.json
+
+      - name: Install Angular dependencies
+        working-directory: components/UserManagementWeb
+        run: npm ci
+
+      - name: Test UserManagementWeb
+        working-directory: components/UserManagementWeb
+        run: npm test -- --watch=false
+
   # Separate job so a torn-down cluster shows as a clean "skipped" deploy job
   # in the Actions UI, not a wall of skipped steps - deploy-all assumes
   # terraform apply already ran for this environment (same assumption
@@ -41,6 +82,7 @@ jobs:
   # given this project's cost-conscious "tear the cluster down between
   # sessions" pattern.
   check-cluster:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.vars.outputs.environment }}
