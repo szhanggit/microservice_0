@@ -221,7 +221,7 @@ jobs:
       # the job, so partial results aren't lost - though scanning stops at
       # the first failing image (fail-fast, same philosophy as `test`).
       - name: Scan dataaccess image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.images.outputs.dataaccess }}
           severity: CRITICAL,HIGH
@@ -236,7 +236,7 @@ jobs:
           category: trivy-dataaccess
 
       - name: Scan management image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.images.outputs.management }}
           severity: CRITICAL,HIGH
@@ -251,7 +251,7 @@ jobs:
           category: trivy-management
 
       - name: Scan gateway image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.images.outputs.gateway }}
           severity: CRITICAL,HIGH
@@ -266,7 +266,7 @@ jobs:
           category: trivy-gateway
 
       - name: Scan jobmonitor image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.images.outputs.jobmonitor }}
           severity: CRITICAL,HIGH
