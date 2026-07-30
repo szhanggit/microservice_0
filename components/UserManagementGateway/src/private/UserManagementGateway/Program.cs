@@ -17,7 +17,7 @@ AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddSharedSerilogLogging("UserManagementGateway");
-builder.AddSharedOpenTelemetryTracing("UserManagementGateway", t => t.AddGrpcClientInstrumentation());
+builder.AddSharedOpenTelemetry("UserManagementGateway", t => t.AddGrpcClientInstrumentation());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
