@@ -61,3 +61,11 @@ deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controll
 # - ExternalDNS's own policy=upsert-only means it will never do this itself).
 destroy-app env="develop": (update-kubeconfig env)
     ./scripts/destroy-app.sh {{env}}
+
+# Rolls back the microservice0 Helm release - to the immediately preceding
+# revision if `revision` is left blank, or to a specific one otherwise (see
+# `helm history microservice0 -n microservice0` for available revisions).
+# Only reverts Kubernetes manifests (image tags, config, replica counts) -
+# never touches the database/schema (see scripts/rollback.sh).
+rollback env="develop" revision="": (update-kubeconfig env)
+    ./scripts/rollback.sh {{env}} {{revision}}
