@@ -34,6 +34,80 @@ env:
   AWS_REGION: ca-central-1
 
 jobs:
+  # Runs first, before anything touches AWS. check-cluster/deploy both
+  # transitively depend on this (see check-cluster's needs: below) via
+  # needs:, so a test failure stops the whole pipeline immediately - neither
+  # of those jobs starts at all. JobMonitorService has no test project
+  # (nothing to run for it); the other three .NET services' solutions each
+  # include both their unit and integration test projects - integration
+  # tests run against a real in-memory SQLite database (see e.g.
+  # tests/integration/Repositories/UserRepositoryTests.cs), no external
+  # services needed.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test UserRepositoryService (unit + integration)
+        run: dotnet test components/UserRepositoryService/src/UserRepositoryService.sln
+
+      - name: Test UserManagementService (unit + integration)
+        run: dotnet test components/UserManagementService/src/UserManagementService.sln
+
+      - name: Test UserManagementGateway (unit + integration)
+        run: dotnet test components/UserManagementGateway/src/UserManagementGateway.sln
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: components/UserManagementWeb/package-lock.json
+
+      - name: Install Angular dependencies
+        working-directory: components/UserManagementWeb
+        run: npm ci
+
+      - name: Test UserManagementWeb
+        working-directory: components/UserManagementWeb
+        run: npm test -- --watch=false
+
+  # Static code analysis (SAST) across all 4 .NET services + the Angular app,
+  # runs in parallel with `test` (not serialized after it) since CodeQL
+  # analysis across two languages takes a few minutes. Deliberately does NOT
+  # gate check-cluster/deploy (no needs: wiring from those jobs to this one)
+  # - unlike Trivy's image scan below, SAST findings need human triage
+  # (false positives are common without an existing suppression/baseline
+  # process), so this reports to the Security tab rather than blocking every
+  # deploy on any alert.
+  code-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp, javascript-typescript
+
+      - name: Build .NET solutions for CodeQL
+        run: |
+          dotnet build components/UserRepositoryService/src/UserRepositoryService.sln
+          dotnet build components/UserManagementService/src/UserManagementService.sln
+          dotnet build components/UserManagementGateway/src/UserManagementGateway.sln
+          dotnet build components/JobMonitorService/src/private/JobMonitorService/JobMonitorService.csproj
+
+      - uses: github/codeql-action/analyze@v3
+
   # Separate job so a torn-down cluster shows as a clean "skipped" deploy job
   # in the Actions UI, not a wall of skipped steps - deploy-all assumes
   # terraform apply already ran for this environment (same assumption
@@ -41,6 +115,7 @@ jobs:
   # given this project's cost-conscious "tear the cluster down between
   # sessions" pattern.
   check-cluster:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.vars.outputs.environment }}
@@ -85,6 +160,10 @@ jobs:
     needs: check-cluster
     if: needs.check-cluster.outputs.exists == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      security-events: write
     env:
       ENVIRONMENT: ${{ needs.check-cluster.outputs.environment }}
       TAG: ${{ needs.check-cluster.outputs.tag }}
@@ -124,6 +203,82 @@ jobs:
       - name: Build and push images
         working-directory: Helm
         run: just build-push "$ENVIRONMENT" "$TAG"
+
+      - name: Resolve image URLs
+        id: images
+        run: |
+          REPO_URLS_JSON="$(aws ssm get-parameter --name "/microservice0/$ENVIRONMENT/ecr_repository_urls" --region "${{ env.AWS_REGION }}" --query 'Parameter.Value' --output text)"
+          echo "dataaccess=$(echo "$REPO_URLS_JSON" | jq -r '.userrepositoryservice'):$TAG" >> "$GITHUB_OUTPUT"
+          echo "management=$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementservice'):$TAG" >> "$GITHUB_OUTPUT"
+          echo "gateway=$(echo "$REPO_URLS_JSON" | jq -r '.usermanagementgateway'):$TAG" >> "$GITHUB_OUTPUT"
+          echo "jobmonitor=$(echo "$REPO_URLS_JSON" | jq -r '.jobmonitorservice'):$TAG" >> "$GITHUB_OUTPUT"
+
+      # Gates the deploy, unlike code-scan above - vulnerable OS packages/
+      # known-CVE base images are low-false-positive and genuinely shouldn't
+      # ship, so exit-code: "1" fails this step (and therefore the job,
+      # before deploy-app ever runs) on any CRITICAL/HIGH finding. Each
+      # image's SARIF still uploads even if an earlier image already failed
+      # the job, so partial results aren't lost - though scanning stops at
+      # the first failing image (fail-fast, same philosophy as `test`).
+      - name: Scan dataaccess image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.images.outputs.dataaccess }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-dataaccess.sarif
+      - name: Upload dataaccess scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-dataaccess.sarif
+          category: trivy-dataaccess
+
+      - name: Scan management image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.images.outputs.management }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-management.sarif
+      - name: Upload management scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-management.sarif
+          category: trivy-management
+
+      - name: Scan gateway image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.images.outputs.gateway }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-gateway.sarif
+      - name: Upload gateway scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-gateway.sarif
+          category: trivy-gateway
+
+      - name: Scan jobmonitor image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.images.outputs.jobmonitor }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-jobmonitor.sarif
+      - name: Upload jobmonitor scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-jobmonitor.sarif
+          category: trivy-jobmonitor
 
       - name: Deploy app
         working-directory: Helm
