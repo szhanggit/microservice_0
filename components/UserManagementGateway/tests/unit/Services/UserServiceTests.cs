@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Common.Exceptions;
 using Shared.Contracts.Requests;
@@ -18,7 +19,7 @@ public sealed class UserServiceTests
 
     public UserServiceTests()
     {
-        _sut = new UserService(_managementClient.Object, new CreateUserRequestValidator(), new UpdateUserRequestValidator());
+        _sut = new UserService(_managementClient.Object, new CreateUserRequestValidator(), new UpdateUserRequestValidator(), Mock.Of<ILogger<UserService>>());
     }
 
     [Fact]
