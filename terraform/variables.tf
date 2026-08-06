@@ -177,3 +177,15 @@ variable "db_publicly_accessible" {
   type        = bool
   default     = false
 }
+
+variable "frontend_domain_name" {
+  description = "Custom domain the CloudFront distribution (static Angular app only) answers on - a distinct name from Helm/values.yaml's ingress.domain (microservice0.ekslab.xyz), which stays on the ALB for the gateway API. Unlike most other variables here this isn't suffixed per environment, since only one environment is ever live on this domain at a time."
+  type        = string
+  default     = "usermgn.ekslab.xyz"
+}
+
+variable "route53_zone_id" {
+  description = "Hosted zone ID for frontend_domain_name (ekslab.xyz) - same zone github-actions-oidc/variables.tf's route53_zone_id points at"
+  type        = string
+  default     = "Z01003713LZ694SBOOR14"
+}

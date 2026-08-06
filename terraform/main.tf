@@ -21,10 +21,11 @@ provider "aws" {
   region = var.region
 }
 
-# Temporary - only needed so `terraform apply` can destroy the orphaned
-# module.eks_amg.* resources left in state from the removed AMG module (it
-# needs the provider they were originally created with to issue the delete
-# calls). Remove this block again once those orphans are gone from state.
+# Originally added only to destroy orphaned module.eks_amg.* resources left
+# in state from the removed AMG module - kept permanently now, since
+# module.frontend_cdn's ACM certificate also needs it (CloudFront custom
+# domains require their ACM cert to live in us-east-1 specifically,
+# regardless of this stack's own region).
 provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
@@ -160,6 +161,18 @@ module "ecr" {
 
   repository_names   = var.ecr_repository_names
   repository_prefix  = var.cluster_name
+}
+
+module "frontend_cdn" {
+  source = "./modules/frontend-cdn"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  name_prefix     = var.cluster_name
+  domain_name     = var.frontend_domain_name
+  route53_zone_id = var.route53_zone_id
 }
 
 module "rds" {

@@ -35,6 +35,22 @@ resource "aws_ssm_parameter" "ecr_repository_urls" {
   value = jsonencode(module.ecr.repository_urls)
 }
 
+# Lets a future CI step (build the Angular app, aws s3 sync the output,
+# invalidate the distribution) find the target bucket/distribution without
+# needing Terraform CLI/state access - same handoff pattern as everything
+# else in this file.
+resource "aws_ssm_parameter" "frontend_bucket_name" {
+  name  = "${local.ssm_prefix}/frontend_bucket_name"
+  type  = "String"
+  value = module.frontend_cdn.bucket_name
+}
+
+resource "aws_ssm_parameter" "frontend_distribution_id" {
+  name  = "${local.ssm_prefix}/frontend_distribution_id"
+  type  = "String"
+  value = module.frontend_cdn.distribution_id
+}
+
 # Plain RDS endpoint hostname (no port/credentials) - used by
 # kubernetes/dataaccess/externalname.yaml to demo an ExternalName Service
 # giving the RDS instance an in-cluster DNS name.

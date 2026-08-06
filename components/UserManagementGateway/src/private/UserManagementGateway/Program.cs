@@ -41,12 +41,32 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSharedExceptionHandling();
 builder.Services.AddHealthChecks();
 
+// The Angular app is served from CloudFront on usermgn.ekslab.xyz (see
+// terraform/modules/frontend-cdn) while this gateway stays on its own
+// domain (microservice0.ekslab.xyz, served directly by the ALB) - a
+// genuine cross-origin call, unlike local `ng serve`/docker-compose, which
+// both stay same-origin via a reverse proxy (see UserManagementWeb's
+// proxy.conf.json/nginx.conf). No credentials/cookies are sent by
+// UserApiService, so no AllowCredentials() is needed here.
+const string FrontendCorsPolicy = "Frontend";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy.WithOrigins("https://usermgn.ekslab.xyz")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 app.UseSharedXRayTracing("UserManagementGateway");
 app.UseSerilogRequestLogging();
 
 app.UseExceptionHandler();
+
+app.UseCors(FrontendCorsPolicy);
 
 if (app.Environment.IsDevelopment())
 {
