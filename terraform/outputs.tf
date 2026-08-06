@@ -131,6 +131,19 @@ output "rds_enhanced_monitoring_role_arn" {
   value = module.rds.rds_enhanced_monitoring_role_arn
 }
 
+output "frontend_bucket_name" {
+  value = module.frontend_cdn.bucket_name
+}
+
+output "frontend_distribution_id" {
+  description = "Needed by a future CI step to invalidate the cache after syncing a new Angular build to the bucket"
+  value       = module.frontend_cdn.distribution_id
+}
+
+output "frontend_distribution_domain_name" {
+  value = module.frontend_cdn.distribution_domain_name
+}
+
 # Ready to drop straight into dataaccess's Secret - see
 # scripts/apply-db-secret.sh, which reads this via `terraform output -raw`.
 output "db_connection_string" {
