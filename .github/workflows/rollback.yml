@@ -58,6 +58,12 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - uses: azure/setup-helm@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: components/UserManagementWeb/package-lock.json
+
       - name: Update kubeconfig
         working-directory: Helm
         run: just update-kubeconfig "${{ inputs.environment }}"
@@ -65,3 +71,12 @@ jobs:
       - name: Rollback app
         working-directory: Helm
         run: just rollback "${{ inputs.environment }}" "${{ inputs.revision }}"
+
+      # Not a true paired rollback like the Helm revision history above -
+      # this redeploys the frontend from whatever ref this workflow run was
+      # dispatched from (see Helm/scripts/deploy-frontend.sh), which also
+      # doubles as "exit maintenance mode" if destroy.yml had put the site
+      # into maintenance (see Helm/scripts/enable-maintenance.sh).
+      - name: Redeploy frontend
+        working-directory: Helm
+        run: just deploy-frontend "${{ inputs.environment }}"
