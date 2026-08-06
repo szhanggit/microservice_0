@@ -156,6 +156,49 @@ jobs:
             echo "::notice::Cluster microservice0-${{ steps.vars.outputs.environment }} not found - terraform hasn't been applied for this environment right now, so deploy is being skipped (expected while the cluster is torn down between sessions, not a failure)."
           fi
 
+  # Independent of check-cluster/deploy below - S3 + CloudFront don't need
+  # the EKS cluster at all, so the frontend can still be published even
+  # while the cluster is torn down between sessions. Only needs `test` to
+  # pass. Fails outright (no graceful skip like check-cluster's cluster
+  # check) if terraform/modules/frontend-cdn hasn't been applied for this
+  # environment yet - see scripts/deploy-frontend.sh's SSM lookups.
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment
+        id: vars
+        run: |
+          ENVIRONMENT="${{ inputs.environment }}"
+          if [ -z "$ENVIRONMENT" ]; then
+            ENVIRONMENT="develop"
+          fi
+
+          echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: extractions/setup-just@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: components/UserManagementWeb/package-lock.json
+
+      - name: Deploy frontend
+        working-directory: Helm
+        run: just deploy-frontend "${{ steps.vars.outputs.environment }}"
+
   deploy:
     needs: check-cluster
     if: needs.check-cluster.outputs.exists == 'true'

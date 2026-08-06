@@ -128,6 +128,29 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     actions   = ["route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets"]
     resources = ["arn:aws:route53:::hostedzone/${var.route53_zone_id}"]
   }
+
+  # Lets scripts/deploy-frontend.sh (Helm/scripts) sync the Angular build
+  # into the bucket ../modules/frontend-cdn created.
+  statement {
+    sid    = "FrontendBucketReadWrite"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+    resources = [
+      "arn:aws:s3:::${var.frontend_bucket_pattern}",
+      "arn:aws:s3:::${var.frontend_bucket_pattern}/*",
+    ]
+  }
+
+  statement {
+    sid       = "FrontendCloudFrontInvalidate"
+    effect    = "Allow"
+    actions   = ["cloudfront:CreateInvalidation"]
+    resources = [for id in var.frontend_distribution_ids : "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${id}"]
+  }
 }
 
 resource "aws_iam_policy" "github_actions" {

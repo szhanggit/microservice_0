@@ -50,6 +50,19 @@ build-push env="develop" tag=`git rev-parse --short HEAD`:
 deploy-app env="develop" tag=`git rev-parse --short HEAD`:
     ./scripts/deploy-app.sh {{env}} {{tag}}
 
+# Builds the Angular app and publishes it to S3/CloudFront (see
+# scripts/deploy-frontend.sh and ../terraform/modules/frontend-cdn). Needs
+# frontend-cdn already applied for this environment - independent of the
+# EKS cluster/Helm release above, not part of deploy-all.
+deploy-frontend env="develop":
+    ./scripts/deploy-frontend.sh {{env}}
+
+# Swaps the deployed frontend's index.html for a static "in maintenance"
+# page (see scripts/enable-maintenance.sh) - self-healing, the next
+# deploy-frontend run overwrites it with the real app again.
+enable-maintenance env="develop":
+    ./scripts/enable-maintenance.sh {{env}}
+
 # Full app deploy path for one environment, assuming terraform/ has already
 # been applied for it (see ../terraform/justfile)
 deploy-all env="develop" tag=`git rev-parse --short HEAD`: (install-alb-controller env) (install-external-dns env) (install-cluster-autoscaler env) (install-alloy env) (build-push env tag) (deploy-app env tag)

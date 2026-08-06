@@ -60,3 +60,12 @@ jobs:
       - name: Destroy app
         working-directory: Helm
         run: just destroy-app "${{ inputs.environment }}"
+
+      # Backend is gone, but the frontend (S3 + CloudFront) is separate
+      # infrastructure and stays up - swap in a static maintenance page
+      # instead of leaving a live app whose every API call fails. See
+      # Helm/scripts/enable-maintenance.sh - self-healing, the next
+      # deploy/rollback overwrites this with the real app again.
+      - name: Show maintenance page on frontend
+        working-directory: Helm
+        run: just enable-maintenance "${{ inputs.environment }}"
