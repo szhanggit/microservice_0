@@ -46,7 +46,7 @@ variable "route53_zone_id" {
 }
 
 variable "frontend_bucket_pattern" {
-  description = "S3 bucket name pattern for ../modules/frontend-cdn buckets across all environments - matches that module's \"${name_prefix}-frontend\" naming (name_prefix = cluster_name, e.g. microservice0-develop), same wildcard-by-prefix style already used for ECR above"
+  description = "S3 bucket name pattern for ../modules/frontend-cdn buckets across all environments - matches that module's \"name_prefix-frontend\" naming (name_prefix = cluster_name, e.g. microservice0-develop), same wildcard-by-prefix style already used for ECR above"
   type        = string
   default     = "microservice0-*-frontend"
 }
@@ -54,5 +54,5 @@ variable "frontend_bucket_pattern" {
 variable "frontend_distribution_ids" {
   description = "CloudFront distribution ID(s) for ../modules/frontend-cdn. Unlike frontend_bucket_pattern, this can't be a name-based wildcard - CloudFront distribution IDs are opaque/unpredictable, assigned at creation. Must be updated (and this state reapplied) whenever a distribution is destroyed and recreated, e.g. after a full environment teardown - find the current ID via `aws cloudfront list-distributions --query \"DistributionList.Items[].{Id:Id,Aliases:Aliases.Items}\"`."
   type        = list(string)
-  default     = ["E1DTFKOE3Q9TNY"] # microservice0-develop / usermgn.ekslab.xyz
+  default     = ["E31BMOS5UNIOJE"] # microservice0-develop / usermgn.ekslab.xyz
 }
